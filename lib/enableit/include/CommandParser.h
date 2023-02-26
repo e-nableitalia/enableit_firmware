@@ -26,7 +26,7 @@ public:
     void add(const char *command, const char *help, void (TClass::*fpt)());
     void display();
     int getInt(int pos);
-    char *getString(int pos);
+    const char *getString(int pos);
     bool getBool(int pos);
     const char *getCommand(int i);
     const char *getHelp(int i);    

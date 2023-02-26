@@ -75,7 +75,7 @@ int CommandParser<TClass>::getInt(int pos) {
 }
 
 template <class TClass>
-char *CommandParser<TClass>::getString(int pos) {
+const char *CommandParser<TClass>::getString(int pos) {
     if (pos > argc)
         return "";
     
