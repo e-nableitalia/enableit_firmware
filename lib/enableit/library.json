@@ -1,0 +1,26 @@
+{
+    "name": "enableit",
+    "version": "1.0.0",
+    "description": "A library supporting bionic and electronic controlled enable devices on ESP32 platforms",
+    "keywords": "enableit, platform, esp32",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/e-nableitalia/enableit_firmware.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Alberto Navatta",
+        "email": "alberto@e-nableitalia.it"
+      }
+    ],
+    "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
+    "homepage": "https://e-nable.it/",
+    "dependencies": {
+      "knolleary/PubSubClient" : "~2.8",
+      "bblanchon/ArduinoJson" : "~6.20.0"
+    },
+    "frameworks": "*",
+    "platforms": "*"
+  }
