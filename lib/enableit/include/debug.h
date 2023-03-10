@@ -8,7 +8,7 @@
 #define CONSOLE_DEBUG_H
 
 // debug enabled
-//#define DEBUG
+#define DEBUG
 #define FORMAT_BUFFERSIZE 1024
 
 void debug_enable(bool enabled);
