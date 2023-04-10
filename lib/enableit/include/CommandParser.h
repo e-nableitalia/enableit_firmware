@@ -12,7 +12,7 @@
 
 #define BUFFER_MAX      256
 #define MAX_ARGS        10
-#define MAX_COMMANDS    20
+#define MAX_COMMANDS    30
 
 #define PROMPT          "Command: "
 #define PROMPT_CMDERROR "Unknown command <%s>"
@@ -25,6 +25,7 @@ public:
     void poll();
     void add(const char *command, const char *help, void (TClass::*fpt)());
     void display();
+    int getArgs() { return argc; }
     int getInt(int pos);
     const char *getString(int pos);
     bool getBool(int pos);

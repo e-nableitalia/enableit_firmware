@@ -116,12 +116,10 @@ void BootLoader::waitUserTimeout() {
     unsigned long now = millis();
 
     if ((now - start) < (config.bootTimeout * 1000)) {
-        DBG("BOOT: Checking button state");
+        DBG("BOOT: Checking button state/serial in");
         int value = digitalRead(BUTTON_PIN);
-
-        if (value) {
-            //digitalWrite(LED_PIN,1);
-        } else {
+        
+        if ((!value) || (Console.available() > 0)) {
             DBG("BOOT: Boot procedure stopped, switching to [%s]", config.devApp.c_str());
             //digitalWrite(LED_PIN,0);
             if (config.devApp == "boot") {

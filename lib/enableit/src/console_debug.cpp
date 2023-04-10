@@ -172,6 +172,30 @@ void console_debug(const bool dbg, const char *prefix, bool addlf, const char *f
             }
           };
           break;
+          case 'x': {
+            // decimal
+            char ibuffer[16];
+            unsigned int val = va_arg (argp, unsigned int);
+            snprintf(ibuffer,16,"%x",val);
+            char *str = ibuffer;
+            while ((*str) && (bspace)) {
+              *bp++ = *str++;
+              --bspace;
+            }
+          };
+          break; 
+          case 'f': {
+            // decimal
+            char ibuffer[16];
+            double val = va_arg (argp, double);
+            snprintf(ibuffer,16,"%f",val);
+            char *str = ibuffer;
+            while ((*str) && (bspace)) {
+              *bp++ = *str++;
+              --bspace;
+            }
+          };
+          break;                    
           default: {
             // skip format
           }

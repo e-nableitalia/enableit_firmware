@@ -26,6 +26,20 @@
 #include "WProgram.h"
 #endif
 
+#include <CircularBuffer.h>
+
+#define CHANNEL_DATA_SIZE   3 // 3 bytes, 24 bit
+#define NUM_CHANNELS        8 // num max of channels
+#define SAMPLE_SIZE         2000 // 1 second assuming 2Khz sampling rate
+#define BUFFER_SIZE         (SAMPLE_SIZE * NUM_CHANNELS)
+
+#define EMG_CS1     GPIO_NUM_3
+#define EMG_MISO    GPIO_NUM_17
+#define EMG_MOSI    GPIO_NUM_18
+#define EMG_SCLK    GPIO_NUM_16
+#define EMG_CLK     GPIO_NUM_4
+#define EMG_START   GPIO_NUM_5
+#define EMG_DRDY    GPIO_NUM_7
 
 // SPI Command Definition Byte Assignments (Datasheet, pg. 35)
 #define ADS129X_CMD_WAKEUP  0x02 // Wake-up from standby mode
@@ -226,9 +240,12 @@
 #define ADS129X_SAMPLERATE_32   0x1
 #define ADS129X_SAMPLERATE_16   0x0
 
+#define MAX_EVENTS  10
+
 class ADS129X {
     public:
-        ADS129X(int _DRDY, int _CS);
+        ADS129X();
+        void init(int _DRDY, int _CS);
 
         // ADS129X SPI Command Definitions (Datasheet, Pg. 35)
         // System Commands
@@ -241,7 +258,7 @@ class ADS129X {
         // Data Read Commands
         void RDATAC();
         void SDATAC();
-        void RDATA();
+        bool RDATA(long *buffer);
 
         // Register Read/Write Commands
         byte RREG(byte _address);
@@ -249,12 +266,26 @@ class ADS129X {
         void WREG(byte _address, byte _value);
 
         // Functions for setup and data retrieval
+        void enableIrq();
+        void disableIrq();
+        void setBufferedTransfer(bool enable, int size = 0);
+        BufferProducer *getBufferProducer();
         byte getDeviceId();
         boolean getData(long *buffer);
+        long getStatus();
+        int getTicks();
+        byte getChannelStatus();
+        int avail();
         void configChannel(byte _channel, boolean _powerDown, byte _gain, byte _mux);
+
+        void poll();
+        static void addEvent(const char *data);
 
     private:
         int DRDY, CS; //pin numbers for "Data Ready" (DRDY) and "Chip Select" CS (Datasheet, pg. 26)
+        CircularBuffer  dataBuffer;
+        static int numEvents;
+        static String events[MAX_EVENTS];
 };
 
 #endif

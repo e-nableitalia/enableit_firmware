@@ -43,6 +43,9 @@ template <class TClass>
 void CommandParser<TClass>::parse() {
     uint8_t i = argc =  0;
 
+    if (strlen(line) == 0)
+        return;
+
     argv[i] = strtok(line, " ");
     
     do {
