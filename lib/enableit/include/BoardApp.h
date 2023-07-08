@@ -11,6 +11,7 @@
 #define APP_NOOP      "noop"
 #define APP_BOOT      "boot"
 #define APP_OTAUPDATE "otaupdate"
+#define APP_OTAWEBUPDATE "otaweb"
 
 // special run states
 #define STATE_INIT      "init"

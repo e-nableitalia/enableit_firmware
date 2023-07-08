@@ -21,7 +21,7 @@
 #define PANIC_TIMEOUT   20
 
 // Enable to add delay to main loop
-#define LOOP_DELAY      500
+//#define LOOP_DELAY      500
 
 class BoardManager {
 public:

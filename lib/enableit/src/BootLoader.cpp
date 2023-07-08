@@ -21,6 +21,18 @@
 #define CMD_RUN     "* run <app> - execute application <app>"
 #define CMD_LIST    "* list - list applications"
 
+// MQTT port used to communicate with the server, 1883 is the default unencrypted MQTT port.
+constexpr uint16_t THINGSBOARD_PORT = 1883U;
+
+// Maximum size packets will ever be sent or received by the underlying MQTT client,
+// if the size is to small messages might not be sent or received messages will be discarded
+constexpr uint32_t MAX_MESSAGE_SIZE = 256U;
+
+// Initialize underlying client, used to establish a connection
+WiFiClient wifiClient;
+// Initialize ThingsBoard instance with the maximum needed buffer size
+ThingsBoard tb(wifiClient, MAX_MESSAGE_SIZE);
+
 BootLoader::BootLoader() {
     // noop
 }
@@ -96,6 +108,29 @@ void BootLoader::init(BoardApp *s) {
 
     if (config.wifi) {
         doEnableWifi();
+
+        if (config.deviceid != "") {
+            DBG("Enabling thingsboard");
+            if (!tb.connected()) {
+                //subscribed = false;
+                // Connect to the ThingsBoard
+                DBG("Connecting to: ");
+                DBG(config.thingsboard.c_str());
+                DBG(" with token ");
+                DBG(config.devicetoken.c_str());
+                if (!tb.connect(config.thingsboard.c_str(), config.devicetoken.c_str(), THINGSBOARD_PORT, config.deviceid.c_str())) {
+                    ERR("Failed to connect");
+                    return;
+                }
+                // Sending a MAC address as an attribute
+                tb.sendAttributeString("macAddress", WiFi.macAddress().c_str());
+                tb.sendAttributeInt("rssi", WiFi.RSSI());
+                tb.sendAttributeString("bssid", WiFi.BSSIDstr().c_str());
+                tb.sendAttributeString("localIp", WiFi.localIP().toString().c_str());
+                tb.sendAttributeString("ssid", WiFi.SSID().c_str());
+                tb.sendAttributeInt("channel", WiFi.channel());
+            }
+        }
     } else {
         if (config.insights) {
             ERR("ESP Insights disabled, requires WiFi active to enable it");
@@ -116,16 +151,14 @@ void BootLoader::waitUserTimeout() {
     unsigned long now = millis();
 
     if ((now - start) < (config.bootTimeout * 1000)) {
-        DBG("BOOT: Checking button state");
         int value = digitalRead(BUTTON_PIN);
-
-        if (value) {
-            //digitalWrite(LED_PIN,1);
-        } else {
+        
+        if ((!value) || (Console.available() > 0)) {
             DBG("BOOT: Boot procedure stopped, switching to [%s]", config.devApp.c_str());
             //digitalWrite(LED_PIN,0);
             if (config.devApp == "boot") {
                 parser.display();
+                DBG("BOOT: Checking button state/serial in");
                 bootState = BootState::WAIT_COMMAND;
             } else {
                 state->changeApp(config.devApp.c_str());        

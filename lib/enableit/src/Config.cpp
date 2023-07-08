@@ -151,15 +151,18 @@ public:
 };
 
 Param params[] = {
-    { "wifissid", config.wifiSsid, true, false, "enable" }, // "enable.it"
-    { "wifipwd", config.wifiPassword, true, false, "12345678" }, // "enable.it"
+    { "wifissid", config.wifiSsid, true, false, "ZTE-c2839a" }, // "enable.it"
+    { "wifipwd", config.wifiPassword, true, false, "Giroscopio97" }, // "enable.it"
     { "wifi", config.wifi, false, true }, 
-    { "apmode", config.apMode, true, true },
+    { "apmode", config.apMode, true, false },
+    { "thingsboard", config.thingsboard, true, false, "dev.e-nableitalia.it" },
+    { "deviceid", config.deviceid, true, false, "ed629b30-16dd-11ee-be0f-a557af31b048" },
+    { "devicetoken", config.devicetoken, true, false, "bxj5xo14c80nxoxxsndu" },
     { "otaurl", config.otaurl, true, false, url },
     { "timeout", config.bootTimeout, false,  3 },
-    { "app", config.mainApp, true, false, "init" },
+    { "app", config.mainApp, true, false, "emg" },
     { "devmode", config.devMode, true,  false },
-    { "devapp", config.devApp, true, false, "boot" },
+    { "devapp", config.devApp, true, false, "otaweb" },
     { "password", config.password, true, true, "secret" },
     { "insights", config.insights, true,  false },
     { "insightskey", config.insightsKey, true, false, insights_auth_key },
