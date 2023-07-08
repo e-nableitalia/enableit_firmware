@@ -27,6 +27,8 @@ cs 10
 #define PMINTHRESH 10
 #define PMAXTHRESH 70
 
+#define DEFAULT_TIMEOUT 500000 // 0.5 second
+
 class SerialEmg {
 public:
     typedef enum {
@@ -68,32 +70,33 @@ public:
 
     SerialEmg();
 
-    void init(bool start = true);
+    void init();
+    void fini();
 
+    // mist config commands
     void setRate(DATA_RATE r);
     void setSrc(int channel, CHANNEL_SRC src);
     void setGain(int channel, CHANNEL_GAIN gain);
     void setTestMode(bool enable_2x, TEST_SIGNAL signal);
-    void setBuffer(int size);
-
     void enable(int channel);
     void disable(int channel);
 
-    void start();
-    void streaming(bool on);
-    void irq(bool on);
-    int avail();
-    void stop();
-        
-    bool readData(long* data);
-
+    // low level register operations
     void write(byte reg, byte value);
     byte read(byte reg);
+
+    // data capture
+    void streaming(bool on);
+    void setBuffer(int size);
+    int avail();
+        
+    bool readData(long* data, int timeout = DEFAULT_TIMEOUT);
+    int readData(uint8_t *buffer, int size, bool single_frame = false);
 
     int getMaxChannels() { return maxChannels; }
     long getStatus() { return ADS.getStatus(); }
     int getTicks() { return ADS.getTicks(); }
-    byte getChannelState() { return ADS.getChannelStatus(); }
+    byte getChannelState() { return state; }
     BufferProducer *getBufferProducer() { return ADS.getBufferProducer(); }
 
     void poll() {
@@ -106,6 +109,7 @@ private:
     int maxChannels;
     TEST_SIGNAL testSignal;
     DATA_RATE   rate;
+    byte state;
     bool active;
     int bufferDepth;
 };

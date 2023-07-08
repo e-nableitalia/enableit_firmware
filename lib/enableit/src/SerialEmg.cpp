@@ -16,6 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+
 #include <debug.h>
 
 #include "SerialEmg.h"  
@@ -26,7 +28,7 @@ SerialEmg::SerialEmg() {
 }
 
 /* Setup the registers on the ADS1298 */
-void SerialEmg::init(bool s) {
+void SerialEmg::init() {
   DBG("Data ready pin: %d", EMG_DRDY);
   DBG("CS pin: %d", EMG_CS1);
 
@@ -78,13 +80,16 @@ void SerialEmg::init(bool s) {
         DBG("ChipId: Unknown(%x)", value);            
   }
 
-  setRate(RATE_250);
+  setRate(RATE_2K);
 
-  bufferDepth = 250; // 1 second buffer, default
+  bufferDepth = 2000; // 1 second buffer, default
 
   ADS.WREG(ADS129X_REG_CONFIG3, (1<<ADS129X_BIT_PD_REFBUF) | (1<<6) | /* RLDRF is 2.4V */ /* (1<<ADS129X_BIT_RLD_MEAS) | */ (1<<ADS129X_BIT_RLDREF_INT) | (1<<ADS129X_BIT_PD_RLD)); // enable internal reference
   value = ADS.RREG(ADS129X_REG_CONFIG3);
   DBG("ADS129X_REG_CONFIG3[0x%x]", value);
+
+  // all channels disabled
+  state = 0;
 
   for (int i = 0; i < maxChannels; i++) {
     // set channel to default settings
@@ -95,15 +100,11 @@ void SerialEmg::init(bool s) {
     //ADS.configChannel(i, false, ADS129X_GAIN_1X, ADS129X_MUX_TEST); //ADS129X_MUX_NORMAL);
     //buffer[i] = 0;
   }
-
-  if (s) {
-    start();
-  }
 }
 
-void SerialEmg::start() {
-    DBG("Starting data capture");
-    ADS.START();
+void SerialEmg::fini() {
+  DBG("Finalizing");
+  ADS.SDATAC();
 }
 
 void SerialEmg::streaming(bool on) {
@@ -133,32 +134,17 @@ void SerialEmg::streaming(bool on) {
           buffer_size = 16 * bufferDepth; // 16000 * depth / 1000
           break;
     }
-    DBG("Buffer depth[%d], size[%d]", bufferDepth, buffer_size);
-    ADS.setBufferedTransfer(true,buffer_size);
+    DBG("Buffer depth[%d], buffer size[%d]", bufferDepth, buffer_size);
     delay(1);
+    ADS.setBufferedTransfer(buffer_size);
     ADS.RDATAC();
+    delay(1);    
   } else {
     DBG("Deactivate streaming");
-    ADS.SDATAC(); // device wakes up in RDATAC mode, so send stop signal
-    ADS.setBufferedTransfer(false);
     delay(1);
-  }
-}
-
-void SerialEmg::stop() {
-  DBG("Stopping data capture");
-  ADS.STOP();
-}
-
-void SerialEmg::irq(bool on) {
-  if (on) {
-    DBG("Enabling IRQ");
-    ADS.enableIrq();
-    active = true;
-  } else {
-    DBG("Disabling IRQ");
-    ADS.disableIrq();
-    active = false;
+    ADS.SDATAC(); // device wakes up in RDATAC mode, so send stop signal
+    ADS.setBufferedTransfer(0);
+    delay(1);
   }
 }
 
@@ -332,6 +318,8 @@ void SerialEmg::enable(int channel) {
   byte value = ADS.RREG(ADS129X_REG_CH1SET + channel);
   DBG("Enabling Channel[%d]", channel);
   byte newvalue = value & 0x7F; // clear first bit
+
+  state |= 1 << channel;
     
   ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
 }
@@ -340,6 +328,8 @@ void SerialEmg::disable(int channel) {
   byte value = ADS.RREG(ADS129X_REG_CH1SET + channel);
   DBG("Disabling Channel[%d]", channel);
   byte newvalue = value | 0x80; // set first bit
+
+  state &= ~(1 << channel);
     
   ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
 }
@@ -350,21 +340,33 @@ void SerialEmg::setBuffer(int size) {
 }
 
 /* Check if there is data available, if so copy it to data */
-bool SerialEmg::readData(long* data) {
-  if (active)
-    return ADS.getData(data);
-  else {
-    uint32_t start = micros();
-    while (!ADS.RDATA(data)) {
-      uint32_t delta = micros() - start;
-      if (delta > 500000) {
-        ERR("Read timeout expired");
-        return false;
-      }
-
+bool SerialEmg::readData(long *data, int timeout) {
+  uint32_t start = micros();
+  while (!ADS.getData(data)) {
+    uint32_t delta = micros() - start;
+    if (delta > timeout) {
+      ERR("Read timeout expired");
+      return false;
     }
-    return true;
+
   }
+  return true;
+}
+
+int SerialEmg::readData(uint8_t *buffer, int size, bool single_frame) {
+  BufferProducer *bp = ADS.getBufferProducer();
+
+  if (bp) {
+    int available_data = bp->avail();
+    if ((single_frame) && (available_data < size)) {
+      return 0;
+    }
+    int chunk = min(size, available_data);
+    
+    bp->consume(buffer, chunk);
+    
+  }
+  return 0;
 }
 
 int SerialEmg::avail() {

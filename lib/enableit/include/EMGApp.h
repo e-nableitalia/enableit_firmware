@@ -16,12 +16,15 @@
 
 #include <SerialEmg.h>
 
+#include <RTPPackets.h>
+
 class EMGApp : public BoardApp {
     void enter();
     void leave();
     void process();
 
     void cmdSetup();
+    void cmdDestHost();
     void cmdReadData();
     void cmdWrite();
     void cmdRead();
@@ -35,19 +38,23 @@ class EMGApp : public BoardApp {
     void cmdGain();
     void cmdEnable();
     void cmdDisable();
-    void cmdStart();
-    void cmdStop();
     void cmdMode();
     void cmdStatus();
     void cmdBuffer();
     void cmdSequence();
     void cmdOffset();
 
+    void sendHost(String _host,int remotePort, int frame, int delay);
+
     const char *name() { return "emg"; }
     
     SerialEmg   emg;
     long        buffer[9];
     double      offset;
+    bool        polling;
+    bool        streaming;
+    int         delay;
+    RTPPacket   packet;
     CommandParser<EMGApp> parser;
 };
 

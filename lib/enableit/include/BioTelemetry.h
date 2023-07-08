@@ -40,9 +40,9 @@
 #define C_DEBUG(...)     do {} while (0)
 #endif
 
-class Telemetry {
+class BioTelemetry {
 public:
-    Telemetry();
+    BioTelemetry();
     void init(bool debug = false, int speed = SERIAL_DEFAULT_SPEED);
     bool streaming_enable(String remoteip, int port);
     void streaming_disable();
@@ -83,7 +83,7 @@ private:
     char            format_buffer[FORMAT_BUFFERSIZE];
 };
 
-extern Telemetry telemetry;
+extern BioTelemetry telemetry;
 
 #endif
 

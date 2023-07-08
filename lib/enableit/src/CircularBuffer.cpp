@@ -3,134 +3,69 @@
 #include <debug.h>
 #include <CircularBuffer.h>
 
-std::mutex _mutex;
-
 CircularBuffer::CircularBuffer() {
-    sz = 0;
-    datalen = 0;
+	 m_datalen = m_datain = m_dataout = 0;
+     m_streambuffer = NULL;
+     m_buffer = nullptr;
+	//m_head = m_tail =
+    //m_empty = true;
+    //portMUX_INITIALIZE(&m_mux);
 }
 
-void CircularBuffer::size(int s, int len) {
-    datalen = len;
-    sz = s * datalen;
-    head = tail = _avail = 0;
-    overflow = false;
+void CircularBuffer::size(int s, int len, int frame) {
+    m_datalen = len;
+    m_size = s * m_datalen;
+    //m_head = 0;
+	//m_tail = 0;
     
-    if (buffer)
-        free(buffer);
-    if (sz > 0) {
-        DBG("Allocated buffer, size[%d]", sz);
-        buffer = (uint8_t *) malloc(sz);
-        for (int i = 0; i < sz; i++)
-            buffer[i] = 0;
-    } else buffer = nullptr;
-}
-
-void CircularBuffer::produce(uint8_t value) {
-    
-    if (!buffer) return;
-
-    { // sync
-        std::lock_guard<std::mutex> lck(_mutex);
-
-        buffer[head] = value;
-
-        head++;
-        head = head % sz;
+    if (m_buffer) {
+        free(m_buffer);
+    }
+    if (m_streambuffer) {
+        vStreamBufferDelete(m_streambuffer);
+    }
+    if (m_size > 0) {
+        DBG("Allocated buffer, size[%d]", m_size);
+        m_buffer = (uint8_t *) malloc(m_size + 1);
+        for (int i = 0; i < m_size; i++)
+            m_buffer[i] = 0;
         
-        _avail++;
-
-        if (_avail > sz) {
-
-            // telemetry.debug("overflow");
-
-            overflow = true;
-            // advance tail
-            tail++;
-            tail = tail % sz;
-            _avail = sz;
-        }
+        m_streambuffer = xStreamBufferCreateStatic(m_size, frame, m_buffer, &m_bufferdata);
+    } else {
+        m_buffer = nullptr;
+        m_streambuffer = NULL;
     }
 }
 
-void CircularBuffer::produce(uint8_t *b, int size) {
+void CircularBuffer::produce(uint8_t *data, int size) {
     
-    if (!buffer) return;
-
-    { // sync
-        std::lock_guard<std::mutex> lck(_mutex);
-
-        for (int i = 0; i < size; i++) {
-            buffer[head++] = *b++;
-
-            head = head % sz;
-        
-            _avail++;
-
-            if (_avail > sz) {
-                overflow = true;
-                // advance tail
-                tail++;
-                tail = tail % sz;
-                _avail = sz;
-            }
-        }
+    if (m_streambuffer) {
+        size_t pushed_data = xStreamBufferSendFromISR(m_streambuffer, data, size, NULL);
+        m_datain+=pushed_data;
     }
 }
 
-uint8_t CircularBuffer::consume() {
-    
-    if (!_avail) 
-        return -1;
-        
-    uint8_t value;
+int CircularBuffer::consume(uint8_t *data, int size, int timeout) {
 
-    { // sync
-        std::lock_guard<std::mutex> lck(_mutex);
-        // String _dump = String::format("Buffer::consume value(%d), tail(%d)",value,tail);
-        // telemetry.debug(_dump);
-        value = buffer[tail];
-        
-        tail++;
-
-        _avail--;
-        
-        tail = tail % sz;
+    if (m_streambuffer) {
+        int read_data = xStreamBufferReceive(m_streambuffer, data, size, pdMS_TO_TICKS(timeout));
+        m_dataout += read_data;
+        return read_data;
     }
 
-    return value;
+    return 0;
 }
 
-int CircularBuffer::consume(uint8_t *b, int s, bool fill) {
-    DBG("Avail(%d)",_avail);
-
-    if (_avail < s)
-        s = _avail;
-    
-    int pos = 0;
-    
-    { // sync
-        std::lock_guard<std::mutex> lck(_mutex);
-        for (int i=0; i < s; i++) {
-            // unsigned short value = buffer[tail];
-            // String _dump = String::format("Buffer::consume value(%d), tail(%d), index(%d)",value,tail,i);
-            // telemetry.debug(_dump);
-            b[pos++] = buffer[tail++];
-
-            tail = tail % sz;
-        }
-        _avail -= s;
-    }
-
-    return s;
+int CircularBuffer::avail() {
+    return xStreamBufferBytesAvailable( m_streambuffer );
 }
 
 void CircularBuffer::dump() {
-    // String _dump = String::format("Buffer: head(%d), tail(%d), avail(%d), overflow(%s)",
-    //     head,
-    //     tail,
-    //     _avail,
-    //     (overflow ? "true" : "false"));
+    DBG("Buffer: avail(%d), datain(%d), dataout(%d)",
+         xStreamBufferBytesAvailable( m_streambuffer ),
+         m_datain,
+         m_dataout
+         );
 
     // telemetry.debug(_dump);
 }

@@ -1,10 +1,9 @@
 #include <debug.h>
-#include <Telemetry.h>
+#include <BioTelemetry.h>
 
+BioTelemetry telemetry;
 
-Telemetry telemetry;
-
-Telemetry::Telemetry() : 
+BioTelemetry::BioTelemetry() : 
     _debug(false),
     _streaming_enable(false)
 {  
@@ -19,7 +18,7 @@ Telemetry::Telemetry() :
     }
 }
 
-bool Telemetry::streaming_enable(String remoteip, int port) {
+bool BioTelemetry::streaming_enable(String remoteip, int port) {
 
     uint8_t _remoteip[4] = { 0 };
     unsigned int index = 0;
@@ -43,11 +42,11 @@ bool Telemetry::streaming_enable(String remoteip, int port) {
     return true;
 }
 
-void Telemetry::streaming_disable() {
+void BioTelemetry::streaming_disable() {
     _streaming_enable = false;
 }
 
-void Telemetry::init(bool d, int speed) {
+void BioTelemetry::init(bool d, int speed) {
     _debug = d;
  
     //Serial.begin(speed);
@@ -57,18 +56,18 @@ void Telemetry::init(bool d, int speed) {
     udp.begin(32000);
 }
 
-void Telemetry::console(bool value) {
+void BioTelemetry::console(bool value) {
     _debug = value;
 }
 
-void Telemetry::debug(String &s) {
+void BioTelemetry::debug(String &s) {
     if (_debug) {
         Serial.println(s.c_str());
     }
     send(DEBUG_CHANNEL,(uint8_t *)s.c_str(),s.length());
 }
 
-void Telemetry::debug(const char *data) {
+void BioTelemetry::debug(const char *data) {
     if (_debug) {
         Serial.println(data);
     }
@@ -77,7 +76,7 @@ void Telemetry::debug(const char *data) {
     send(DEBUG_CHANNEL,(uint8_t *)data,end - data);
 }
 
-void Telemetry::format(const char *function, const char *format_str, va_list argp) {
+void BioTelemetry::format(const char *function, const char *format_str, va_list argp) {
 
     char *bp=format_buffer;
     int bspace = FORMAT_BUFFERSIZE - 1;
@@ -138,14 +137,14 @@ void Telemetry::format(const char *function, const char *format_str, va_list arg
     *bp = 0;
 }
 
-void Telemetry::vdebug(const char *func, const char *fmt, ...) {
+void BioTelemetry::vdebug(const char *func, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     format(func,fmt,args);   
     debug(format_buffer);
 }
 
-void Telemetry::cdebug(const char *func, const char *fmt, ...) {
+void BioTelemetry::cdebug(const char *func, const char *fmt, ...) {
      if (_debug) {
         va_list args;
         va_start(args, fmt);
@@ -154,22 +153,22 @@ void Telemetry::cdebug(const char *func, const char *fmt, ...) {
     }
 }
 
-void Telemetry::enable(int channel, int packet_size, bool fill_mode) {
+void BioTelemetry::enable(int channel, int packet_size, bool fill_mode) {
     channel_enabled[channel] = true;
     channel_fillmode[channel] = fill_mode;
     channel_pktsize[channel] = packet_size;
     channel_pktready[channel] = 0;
 }
 
-void Telemetry::disable(int channel) {
+void BioTelemetry::disable(int channel) {
     channel_enabled[channel] = false;
 }
 
-void Telemetry::attach(int channel, BufferProducer *producer) {
+void BioTelemetry::attach(int channel, BufferProducer *producer) {
     producers[channel] = producer;
 }
 
-BufferProducer *Telemetry::detach(int channel) {
+BufferProducer *BioTelemetry::detach(int channel) {
     BufferProducer *_p = producers[channel];
     // set default
     producers[channel] = nullptr;
@@ -179,7 +178,7 @@ BufferProducer *Telemetry::detach(int channel) {
     return _p;
 }
 
-void Telemetry::poll() {
+void BioTelemetry::poll() {
     if (_streaming_enable) {
         for (int channel=0; channel < TELEMETRY_MAX_CHANNELS; channel++) {
             if ((channel_enabled[channel]) && (producers[channel])) {
@@ -190,14 +189,14 @@ void Telemetry::poll() {
                 if (res) {
                     DBG("prepared data(%d)",res);
                     channel_pktready[channel] = res;
-                    //telemetry.sendBuffer(channel,res);
+                    //BioTelemetry.sendBuffer(channel,res);
                 }
             }
         }
     }
 }
 
-void Telemetry::send() {
+void BioTelemetry::send() {
     if (_streaming_enable) {
         for (int channel=0; channel < TELEMETRY_MAX_CHANNELS; channel++) {
             if (channel_pktready[channel]) {
@@ -208,7 +207,7 @@ void Telemetry::send() {
     }
 }
 
-void Telemetry::send(unsigned int channel, uint8_t *data, int size) {
+void BioTelemetry::send(unsigned int channel, uint8_t *data, int size) {
     if ((!_streaming_enable) || (!channel_enabled[channel]))
         return;
 
@@ -221,7 +220,7 @@ void Telemetry::send(unsigned int channel, uint8_t *data, int size) {
     udp.endPacket();
 }
 
-void Telemetry::sendBuffer(unsigned int channel, int size) {
+void BioTelemetry::sendBuffer(unsigned int channel, int size) {
     if ((!_streaming_enable) || (!channel_enabled[channel]))
         return;
 
@@ -234,6 +233,6 @@ void Telemetry::sendBuffer(unsigned int channel, int size) {
     udp.endPacket();
 }
 
-uint8_t *Telemetry::getBuffer(int channel) {
+uint8_t *BioTelemetry::getBuffer(int channel) {
     return packet[channel].getPayload();
 }

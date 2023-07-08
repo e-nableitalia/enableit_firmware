@@ -12,7 +12,8 @@
 class BufferProducer {
     public:
         BufferProducer() { };
-        virtual int consume(uint8_t *buffer, int size, bool fill = true) = 0;
+        virtual int consume(uint8_t *buffer, int size, int timeout = 0) = 0;
+        virtual int avail() = 0;
 };
 
 #endif

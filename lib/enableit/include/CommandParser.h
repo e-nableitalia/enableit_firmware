@@ -30,7 +30,8 @@ public:
     const char *getString(int pos);
     bool getBool(int pos);
     const char *getCommand(int i);
-    const char *getHelp(int i);    
+    const char *getHelp(int i);
+    void parseLine(char *buffer);    
 private:
     void parse();
 

@@ -94,6 +94,28 @@ bool CommandParser<TClass>::getBool(int pos) {
 }
 
 template <class TClass>
+void CommandParser<TClass>::parseLine(char *buffer) {
+    DBG("Sending command:[%s]",buffer);
+    while (*buffer) {
+        if (echo)
+            Console.print(*buffer);
+        else
+            Console.print('*');
+
+        // queue char in buffer
+        line[row++] = *buffer++;
+        // leave if buffer overflow
+        if (row >= BUFFER_MAX) {
+            // force command processing
+            ERR("Serial buffer overflow");
+            display();
+            break;
+        }
+    }
+    parse();
+}
+
+template <class TClass>
 void CommandParser<TClass>::poll() {
     if (prompt)
         display();

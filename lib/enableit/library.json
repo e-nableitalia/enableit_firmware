@@ -19,7 +19,8 @@
     "homepage": "https://e-nable.it/",
     "dependencies": {
       "knolleary/PubSubClient" : "~2.8",
-      "bblanchon/ArduinoJson" : "~6.20.0"
+      "bblanchon/ArduinoJson" : "~6.20.0",
+      "thingsboard/ThingsBoard" : "^0.10.2"
     },
     "frameworks": "*",
     "platforms": "*"

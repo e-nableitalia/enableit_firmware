@@ -42,6 +42,9 @@ public:
     String otaurl;
     String password;
     String insightsKey;
+    String thingsboard;
+    String deviceid;
+    String devicetoken;
     String secretKey;
     String devApp;
     String mainApp;

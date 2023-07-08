@@ -1,14 +1,16 @@
-#include <Telemetry.h>
+#include <BioTelemetry.h>
 #include <EMGApp.h>
+#include <WiFiUdp.h>
+
+uint8_t _buffer[6000];
 
 #define CMD_SETUP "* setup"
 #define CMD_TEST "* test <1hz/2hz/dc> <2x gain>, configure test signal"
+#define CMD_HOST "* host <ip> <delay>, configure streaming to host"
 #define CMD_SOURCE "* source <channel> <electrode/noise/supply/temp/test/rldm/rldp/rldn>, configure channel source"
 #define CMD_GAIN "* gain <channel> <1x/2x/3x/4x/6x/8x/12x>, configure channel gain"
 #define CMD_ENABLE "* enable <channel>, enable channel, is 'all' is specified enables all channels"
 #define CMD_DISABLE "* disable <channel>, enable channel, is 'all' is specified disables all channels"
-#define CMD_START "* start, start data streaming in buffer"
-#define CMD_STOP "* stop, stop data streaming in buffer"
 #define CMD_READDATA "* readdata, execute one data read"
 #define CMD_STATUS "* status, check data available in streaming buffer"
 #define CMD_BUFFER "* buffer <depth>, set streaming buffer depth"
@@ -38,6 +40,16 @@ line lines[] = {
     { "sclk", GPIO_NUM_16 }
 };
 
+WiFiUDP Udp;
+IPAddress remoteHost;
+int remotePort = 0;
+int frame = 0;
+int sequence = 0;
+int ts = 0;
+int produced = 0;
+
+bool runcommand = true;
+
 void EMGApp::enter() {
     DBG("enter EMGApp");
     parser.init(this);
@@ -49,8 +61,6 @@ void EMGApp::enter() {
     parser.add("gain", CMD_GAIN, &EMGApp::cmdGain);
     parser.add("enable", CMD_ENABLE, &EMGApp::cmdEnable);
     parser.add("disable", CMD_DISABLE, &EMGApp::cmdDisable);
-    parser.add("start", CMD_START, &EMGApp::cmdStart);
-    parser.add("stop", CMD_STOP, &EMGApp::cmdStop);
     parser.add("mode", CMD_MODE, &EMGApp::cmdMode);
     parser.add("buffer", CMD_BUFFER, &EMGApp::cmdBuffer);
     parser.add("readdata", CMD_READDATA, &EMGApp::cmdReadData);
@@ -61,21 +71,84 @@ void EMGApp::enter() {
     parser.add("update", CMD_UPDATE, &EMGApp::cmdUpdate);
     parser.add("sequence", CMD_SEQUENCE, &EMGApp::cmdSequence);
     parser.add("offset", CMD_OFFSET, &EMGApp::cmdOffset);
+    parser.add("host", CMD_HOST, &EMGApp::cmdDestHost);
     parser.add("help", CMD_HELP, &EMGApp::cmdHelp);
 
     telemetry.init();
 
     offset = 0;
+    polling = false;
+
+    // self test
+    cmdSetup();
+
+    DBG("Sample commands:");
+    DBG("** Reference signal 2Hz test **");
+    DBG("test 2hz 2x");
+    DBG("source all test");
+    DBG("host 192.168.1.12 32000 1200 100");
+    
+/*    parser.parseLine("test 2hz 2x");
+    sleep(1);
+    parser.parseLine("source all test");
+    sleep(1);
+    parser.parseLine("host 192.168.1.12 32000 1200 100");
+    sleep(1);
+    */
 }
 
 void EMGApp::leave() {
     DBG("leave EMGApp");
+    emg.fini();
 }
 
 void EMGApp::process() {
+    if ((Console.available() > 0) && (streaming)) {
+        DBG("Disabling streaming");
+        polling = false;
+        streaming = false;
+    }
+
+    if (polling) {
+        emg.poll();
+    }
+
+    if (streaming) {
+        BufferProducer *buffer = emg.getBufferProducer();
+        int consumed = 0;
+        if (produced) {
+            consumed = buffer->consume(_buffer + produced,frame - produced, delay);
+        } else {
+            consumed = buffer->consume(_buffer,frame, delay);
+        }
+        
+        produced += consumed;
+        if (produced >= frame) {
+            //int *data = (int *) (_buffer);
+            //DBG("Producing sequence[%d], size[%d], frame[%d]", sequence, produced, frame);
+            packet.setSN(sequence++);
+            packet.setPayload(_buffer,frame);
+            packet.setTS(micros() / 15000);
+            Udp.beginPacket(remoteHost, remotePort);
+            Udp.write(packet.getData(), packet.getSize());
+            Udp.endPacket();
+            emg.poll();
+            produced = 0;
+        }
+    }
+    
     parser.poll();
-    emg.poll();
-    telemetry.poll();
+/*
+    if (runcommand) {
+        runcommand = false;
+        DBG("Sending host command");
+        sendHost("192.168.1.12",32000,1200,100);
+    }
+  */  
+    //cmdStatus();
+    //delay(100);
+    //emg.poll();
+    //telemetry.poll();
 }
 
 void EMGApp::cmdHelp() {
@@ -86,6 +159,36 @@ void EMGApp::cmdHelp() {
         if (h) OUT(h);
     }
 }
+
+void EMGApp::cmdDestHost() {
+    String _host = parser.getString(1);
+    remotePort = parser.getInt(2);
+    frame = parser.getInt(3);
+    delay = parser.getInt(4);
+    sendHost(_host,remotePort,frame,delay);
+}
+
+void EMGApp::sendHost(String _host,int remotePort, int frame, int delay) {
+    DBG("Configuring streaming to host, remote host[%s:%d], frame size[%d], delay %d ms", _host.c_str(), remotePort, frame, delay);
+    
+    remoteHost.fromString(_host);
+    streaming = true;
+    Udp.begin(32000);
+
+    packet.setM(false);
+    packet.setSSRC(0);
+    packet.setCC(0);
+    packet.setVersion(2);
+    packet.setPT(96);
+
+    DBG("Setting buffer size[2000]");
+    emg.setBuffer(2000);
+
+    DBG("Starting streaming");
+    emg.streaming(true);
+
+}
+
 
 void EMGApp::cmdSignalHigh() {
     String _signal = parser.getString(1);
@@ -123,7 +226,7 @@ void EMGApp::cmdUpdate() {
 
 void EMGApp::cmdSetup() {
     DBG("EMG Setup");
-    emg.init(false);
+    emg.init();
 }
 
 void EMGApp::cmdReadData() {
@@ -266,20 +369,13 @@ void EMGApp::cmdDisable() {
     } 
 }
 
-void EMGApp::cmdStart() {
-
-    emg.start();
-}
-
 void EMGApp::cmdMode() {
     String mode = parser.getString(1);
 
-    if (mode.equalsIgnoreCase("irq")) {
-        bool on = parser.getBool(2);
-        emg.irq(on);
-    } else if (mode.equalsIgnoreCase("streaming")) {
+    if (mode.equalsIgnoreCase("streaming")) {
         bool on = parser.getBool(2);
         emg.streaming(on);
+        polling = on;
     } else if (mode.equalsIgnoreCase("host")) {
         bool on = parser.getBool(2);
         if (on) {
@@ -300,39 +396,31 @@ void EMGApp::cmdMode() {
         bool on = parser.getBool(2);
         if (on) {
             DBG("Starting acquisition");
-            emg.init(false);
+            emg.init();
             emg.setBuffer(1000);
             emg.streaming(true);
-            //emg.irq(true);
-            emg.start();
         } else {
             DBG("Stopping acquisition");
-            emg.stop();
-            //emg.irq(false);
+            emg.streaming(false);
         }
     }
-}
-
-void EMGApp::cmdStop() {
-    DBG("Stopping data streaming");
-    telemetry.disable(SEMG_CHANNEL0);
-    emg.stop();
 }
 
 void EMGApp::cmdStatus() {
     long status = emg.getStatus();
     byte state = emg.getChannelState();
     int avail = emg.avail();
-    int ticks = emg.getTicks();
     emg.poll();
-    DBG("Status[%x], channel state[%x], available data[%d], ticks[%d]", status, state, avail, ticks);
+    BufferProducer *buffer = emg.getBufferProducer();
+    int consumed = buffer->consume(_buffer,6000);
+    DBG("Status[%x], channel state[%x], available data[%d], consumed[%d], ticks[%d]", status, state, avail, consumed, millis());
 }
 
 void EMGApp::cmdBuffer() {
     String size = parser.getString(1);
     int value = size.toInt();
 
-    if (value > 0 ) {
+    if (value >= 0 ) {
         DBG("Setting buffer depth[%d]", value);
         emg.setBuffer(value);
     }

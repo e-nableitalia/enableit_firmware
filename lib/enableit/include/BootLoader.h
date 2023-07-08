@@ -14,6 +14,8 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <ThingsBoard.h>
 #include <debug.h>
 #include <BoardApp.h>
 

@@ -27,15 +27,18 @@
 std::mutex spi_mtx;
 
 bool    ADS129X_isr;
-byte    ADS129X_status;
 int     ADS129X_CS;
 long    ADS129X_data[9];
 bool    ADS129X_newData;
 bool    ADS129X_bufferedTransfer;
 void    ADS129X_dataReadyISR();
-uint8_t ADS129X_isrBuffer[CHANNEL_DATA_SIZE * NUM_CHANNELS];
+
+// 8 channels + 1 status data, 24 bit, 3 byte data each
+uint8_t ADS129X_isrBuffer[CHANNEL_DATA_SIZE * NUM_CHANNELS + CHANNEL_DATA_SIZE];
 CircularBuffer *ADS129X_databuffer;
 
+int isr_in = 0;
+int isr_out = 0;
 int isr_tick = 0;
 
 String ADS129X::events[MAX_EVENTS];
@@ -101,56 +104,31 @@ void ADS129X::init(int _DRDY, int _CS) {
     digitalWrite(EMG_START,LOW);
     // cs high -> ads disabled
     digitalWrite(CS, HIGH);
-
-    enableIrq();
     
     DBG("ADS Setup complete");
-}
-
-//System Commands
-
-/**
- * Exit Standby Mode.
- */
-void ADS129X::WAKEUP() {
-    std::lock_guard<std::mutex> lck(spi_mtx);
-
-    digitalWrite(CS, LOW); //Low to communicate
-    SPI.transfer(ADS129X_CMD_WAKEUP);
-    delayMicroseconds(2);
-    digitalWrite(CS, HIGH); //High to end communication
-    delayMicroseconds(2);  //must way at least 4 tCLK cycles before sending another command (Datasheet, pg. 38)
-}
-
-/**
- * Enter Standby Mode.
- */
-void ADS129X::STANDBY() {
-    std::lock_guard<std::mutex> lck(spi_mtx);
-
-    digitalWrite(CS, LOW);
-    SPI.transfer(ADS129X_CMD_STANDBY);
-    delayMicroseconds(2);
-    digitalWrite(CS, HIGH);
 }
 
 /**
  * Reset Registers to Default Values.
  */
 void ADS129X::RESET() {
-    std::lock_guard<std::mutex> lck(spi_mtx);
+    ADS129xCommandLock lock(this, false);
 
-    digitalWrite(CS, LOW);
-    SPI.transfer(ADS129X_CMD_RESET);
-    delayMicroseconds(2);
-    digitalWrite(CS, HIGH);
+    sendCommand(ADS129X_CMD_RESET);
     delay(10); //must wait 18 tCLK cycles to execute this command (Datasheet, pg. 38)
+
+    // start triggered by start command
+    digitalWrite(EMG_START,LOW);
+    // cs high -> ads disabled
+    digitalWrite(CS, HIGH);
+
+    // stop streaming
+    sendCommand(ADS129X_CMD_SDATAC);
 
     // init variables
     ADS129X_newData = false;
 
-    // all channels enabled at reset
-    ADS129X_status = 0xff;
+    dataMode = false;
 
     ADS129X_bufferedTransfer = false;
     ADS129X_databuffer = &dataBuffer;
@@ -162,6 +140,63 @@ void ADS129X::RESET() {
     }
 }
 
+//System Commands
+void ADS129X::sendCommand(byte cmd) {
+    DBG("Sending command[0x%x]", cmd);    
+    digitalWrite(CS, LOW); //Low to communicate
+    SPI.transfer(cmd);
+    delayMicroseconds(2);
+    digitalWrite(CS, HIGH); //High to end communication
+    delayMicroseconds(2);  //must way at least 4 tCLK cycles before sending another command (Datasheet, pg. 38)
+
+}
+
+/**
+ * Exit Standby Mode.
+ */
+void ADS129X::WAKEUP() {
+    ADS129xCommandLock lock(this);
+
+    sendCommand(ADS129X_CMD_WAKEUP);
+}
+
+/**
+ * Enter Standby Mode.
+ */
+void ADS129X::STANDBY() {
+    ADS129xCommandLock lock(this);
+
+    sendCommand(ADS129X_CMD_STANDBY);
+}
+
+/**
+ * Enable Read Data Continuous mode (default).
+ */
+void ADS129X::RDATAC() {
+    if (dataMode)
+        return;
+    
+    DBG("RDATAC");
+
+    dataMode = true;
+    START();
+    enableIrq();
+    sendCommand(ADS129X_CMD_RDATAC);
+}
+
+/**
+ * Stop Read Data Continuously mode.
+ */
+void ADS129X::SDATAC() {
+    DBG("SDATAC");
+    if (dataMode) {
+        dataMode = false;
+        disableIrq();
+    }
+    STOP();
+    sendCommand(ADS129X_CMD_SDATAC);
+}
+
 /**
  * Start/restart (synchronize) conversions.
  */
@@ -169,13 +204,7 @@ void ADS129X::START() {
     DBG("Start");
 
     digitalWrite(EMG_START,HIGH);
-/*    std::lock_guard<std::mutex> lck(spi_mtx);
-
-    digitalWrite(CS, LOW);
-    SPI.transfer(ADS129X_CMD_START);
-    delayMicroseconds(2);
-    digitalWrite(CS, HIGH);
-    */
+    //sendCommand(ADS129X_CMD_START);
 }
 
 /**
@@ -184,27 +213,8 @@ void ADS129X::START() {
 void ADS129X::STOP() {
     DBG("Stop");
 
+    //sendCommand(ADS129X_CMD_STOP);
     digitalWrite(EMG_START,LOW);
-/*    std::lock_guard<std::mutex> lck(spi_mtx);
-  
-    digitalWrite(CS, LOW);
-    SPI.transfer(ADS129X_CMD_STOP);
-    delayMicroseconds(2);
-    digitalWrite(CS, HIGH);
-*/
-}
-
-/**
- * Enable Read Data Continuous mode (default).
- */
-void ADS129X::RDATAC() {
-    std::lock_guard<std::mutex> lck(spi_mtx);
-
-    digitalWrite(CS, LOW);
-    SPI.transfer(ADS129X_CMD_RDATAC);
-    delayMicroseconds(2);
-    digitalWrite(CS, HIGH);
-    delayMicroseconds(2); //must way at least 4 tCLK cycles before sending another command (Datasheet, pg. 39)
 }
 
 void ADS129X::enableIrq() {
@@ -222,24 +232,12 @@ void ADS129X::disableIrq() {
 }
 
 /**
- * Stop Read Data Continuously mode.
- */
-void ADS129X::SDATAC() {
-    std::lock_guard<std::mutex> lck(spi_mtx);
-
-    digitalWrite(CS, LOW);
-    SPI.transfer(ADS129X_CMD_SDATAC); //SDATAC
-    delayMicroseconds(2);
-    digitalWrite(CS, HIGH);
-}
-
-/**
  * Read data by command; supports multiple read back.
  */
 bool ADS129X::RDATA(long *buffer) {
-    std::lock_guard<std::mutex> lck(spi_mtx);
-
-    if (digitalRead(DRDY) == LOW) {
+    if (ADS129X_isr) {
+        return false;
+    } else if (digitalRead(DRDY) == LOW) {
         digitalWrite(CS, LOW);
         SPI.transfer(ADS129X_CMD_RDATA);
         //delayMicroseconds(2);
@@ -266,10 +264,11 @@ bool ADS129X::RDATA(long *buffer) {
  * @return          value of register
  */
 byte ADS129X::RREG(byte _address) {
+    
     byte opcode1 = ADS129X_CMD_RREG | (_address & 0x1F); //001rrrrr; _RREG = 00100000 and _address = rrrrr
-
-    std::lock_guard<std::mutex> lck(spi_mtx);
-
+   
+    ADS129xCommandLock lock(this);
+ 
     digitalWrite(CS, LOW); //Low to communicate
     SPI.transfer(ADS129X_CMD_SDATAC); //SDATAC
     SPI.transfer(opcode1); //RREG
@@ -278,7 +277,7 @@ byte ADS129X::RREG(byte _address) {
     byte data = SPI.transfer(0x00); // returned byte should match default of register map unless edited manually (Datasheet, pg.39)
     delayMicroseconds(2);
     digitalWrite(CS, HIGH); //High to end communication
-    //DBG("Read reg[%d], value[%d]", _address, data);
+
     return data;
 }
 
@@ -291,8 +290,8 @@ byte ADS129X::RREG(byte _address) {
 void ADS129X::RREG(byte _address, byte _numRegisters, byte *_data) {
     byte opcode1 = ADS129X_CMD_RREG | (_address & 0x1F); //001rrrrr; _RREG = 00100000 and _address = rrrrr
 
-    std::lock_guard<std::mutex> lck(spi_mtx);
-
+    ADS129xCommandLock lock(this);
+    
     digitalWrite(CS, LOW); //Low to communicated
     SPI.transfer(ADS129X_CMD_SDATAC); //SDATAC
     SPI.transfer(opcode1); //RREG
@@ -301,7 +300,7 @@ void ADS129X::RREG(byte _address, byte _numRegisters, byte *_data) {
         *(_data+i) = SPI.transfer(0x00); // returned byte should match default of register map unless previously edited manually (Datasheet, pg.39)
     }
     delayMicroseconds(2);
-    digitalWrite(CS, HIGH); //High to end communication
+    digitalWrite(CS, HIGH); //High to end communication   
 }
 
 /**
@@ -313,7 +312,7 @@ void ADS129X::WREG(byte _address, byte _value) {
     //DBG("Write reg[%d], value[%d]", _address, _value);
     byte opcode1 = ADS129X_CMD_WREG | (_address & 0x1F); //001rrrrr; _RREG = 00100000 and _address = rrrrr
 
-    std::lock_guard<std::mutex> lck(spi_mtx);
+    ADS129xCommandLock lock(this);
 
     digitalWrite(CS, LOW); //Low to communicate
     SPI.transfer(opcode1);
@@ -321,6 +320,7 @@ void ADS129X::WREG(byte _address, byte _value) {
     SPI.transfer(_value);
     delayMicroseconds(2);
     digitalWrite(CS, HIGH); //Low to communicate
+   
 }
 
 /**
@@ -328,7 +328,7 @@ void ADS129X::WREG(byte _address, byte _value) {
  * @return device ID
  */
 byte ADS129X::getDeviceId() {
-    std::lock_guard<std::mutex> lck(spi_mtx);
+    ADS129xCommandLock lock(this);
 
     digitalWrite(CS, LOW); //Low to communicate
     SPI.transfer(ADS129X_CMD_RREG); //RREG
@@ -342,12 +342,15 @@ byte ADS129X::getDeviceId() {
     return data;
 }
 
-void ADS129X::setBufferedTransfer(bool enabled, int size) {
-    ADS129X_bufferedTransfer = enabled;
+void ADS129X::setBufferedTransfer(int size) {
     if (size > 0) {
-        dataBuffer.size(size, CHANNEL_DATA_SIZE);
+        DBG("Buffered transfer enabled, size[%d]", size * NUM_CHANNELS);
+        ADS129X_bufferedTransfer = true;
+        dataBuffer.size(size * NUM_CHANNELS, CHANNEL_DATA_SIZE, CHANNEL_DATA_SIZE * NUM_CHANNELS);
     } else {
-        dataBuffer.size(0, 0);
+        DBG("Buffered transfer disabled");
+        ADS129X_bufferedTransfer = false;
+        dataBuffer.size(0, 0, 0);
     }
 }
 
@@ -364,57 +367,29 @@ int ADS129X::getTicks() {
  * Transfers data and sets a flag.
  */
 void ADS129X_dataReadyISR() {
-    std::lock_guard<std::mutex> lck(spi_mtx);
 
-    //ADS129X::addEvent("isr");
-
+    isr_tick++;
 
     digitalWrite(ADS129X_CS, LOW);
-    // read status
-    ((char*) ADS129X_data)[0*4+3] = 0;
-    ((char*) ADS129X_data)[0*4+2] = SPI.transfer(0x00);
-    ((char*) ADS129X_data)[0*4+1] = SPI.transfer(0x00);
-    ((char*) ADS129X_data)[0*4+0] = SPI.transfer(0x00);   
-    
+ 
+    isr_in++;
+
     if (ADS129X_bufferedTransfer) {
-#ifdef SINGLE_CHANNEL_PRODUCE
-        // channel 1
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        // channel 2
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        // channel 3
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        // channel 4
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        // channel 5
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        // channel 6
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        // channel 7
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        // channel 8
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-        ADS129X_databuffer->produce(SPI.transfer(0x00));
-    #else
-        isr_tick++;
-        SPI.transfer(ADS129X_isrBuffer, NUM_CHANNELS * CHANNEL_DATA_SIZE);
-        ADS129X_databuffer->produce(ADS129X_isrBuffer,NUM_CHANNELS * CHANNEL_DATA_SIZE);
-    #endif
+        // read data
+        for (int i = 0; i < NUM_CHANNELS * CHANNEL_DATA_SIZE + CHANNEL_DATA_SIZE; i++) {
+            ADS129X_isrBuffer[i] = SPI.transfer(0x00);
+        }
+        // SPI.transfer(ADS129X_isrBuffer, NUM_CHANNELS * CHANNEL_DATA_SIZE + CHANNEL_DATA_SIZE);
+
+        // copy status
+        ((char*) ADS129X_data)[0*4+2] = ADS129X_isrBuffer[0];
+        ((char*) ADS129X_data)[0*4+1] = ADS129X_isrBuffer[1];
+        ((char*) ADS129X_data)[0*4+0] = ADS129X_isrBuffer[2];
+
+//        int *data = (int *)(ADS129X_isrBuffer + 3);
+//        *data = isr_in;
+    
+        ADS129X_databuffer->produce(ADS129X_isrBuffer + 3,NUM_CHANNELS * CHANNEL_DATA_SIZE);
     } else {     
         // channel 1
         ((char*) ADS129X_data)[1*4+3] = 0;
@@ -456,10 +431,13 @@ void ADS129X_dataReadyISR() {
         ((char*) ADS129X_data)[8*4+2] = SPI.transfer(0x00);
         ((char*) ADS129X_data)[8*4+1] = SPI.transfer(0x00);
         ((char*) ADS129X_data)[8*4+0] = SPI.transfer(0x00);
+
+        ADS129X_newData = true;
     }
 
     digitalWrite(ADS129X_CS, HIGH);
-    ADS129X_newData = true;
+
+    isr_out++;
 }
 
 int ADS129X::avail() {
@@ -472,16 +450,18 @@ int ADS129X::avail() {
  * @return true when received data
  */
 boolean ADS129X::getData(long *buffer) {
-    if (ADS129X_newData) {
-        std::lock_guard<std::mutex> lck(spi_mtx);
-
-        ADS129X_newData = false;
-        for (int i = 1; i < 9; i++) {
-            buffer[i] = ADS129X_data[i];
+    if (ADS129X_isr) {
+        if (ADS129X_newData) {
+            ADS129X_newData = false;
+            for (int i = 1; i < 9; i++) {
+                buffer[i] = ADS129X_data[i];
+            }
+            return true;
         }
-        return true;
+        return false;
+    } else {
+        return RDATA(buffer);
     }
-    return false;
 }
 
 /**
@@ -498,10 +478,6 @@ void ADS129X::configChannel(byte _channel, boolean _powerDown, byte _gain, byte 
     WREG(ADS129X_REG_CH1SET + _channel, value);
 }
 
-byte ADS129X::getChannelStatus() {
-    return ADS129X_status;
-}
-
 void ADS129X::addEvent(const char *evt) {
     if (numEvents < MAX_EVENTS) {
         events[numEvents++] = evt;
@@ -513,6 +489,14 @@ void ADS129X::poll() {
         DBG("Event[%s]", events[i].c_str());
     }
     numEvents = 0;
+
+/* // DMS
+   // Debug disabled
+    if (isr_tick)
+        DBG("isr ticks[%d], isr in[%d], isr out[%d]", isr_tick, isr_in, isr_out);
+    
+    dataBuffer.dump();
+*/
 }
 
 BufferProducer *ADS129X::getBufferProducer() {

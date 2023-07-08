@@ -26,6 +26,7 @@
 #include "WProgram.h"
 #endif
 
+#include <debug.h>
 #include <CircularBuffer.h>
 
 #define CHANNEL_DATA_SIZE   3 // 3 bytes, 24 bit
@@ -242,7 +243,10 @@
 
 #define MAX_EVENTS  10
 
+class ADS129xCommandLock;
+
 class ADS129X {
+    friend class ADS129xCommandLock;
     public:
         ADS129X();
         void init(int _DRDY, int _CS);
@@ -268,13 +272,12 @@ class ADS129X {
         // Functions for setup and data retrieval
         void enableIrq();
         void disableIrq();
-        void setBufferedTransfer(bool enable, int size = 0);
+        void setBufferedTransfer(int size);
         BufferProducer *getBufferProducer();
         byte getDeviceId();
         boolean getData(long *buffer);
         long getStatus();
         int getTicks();
-        byte getChannelStatus();
         int avail();
         void configChannel(byte _channel, boolean _powerDown, byte _gain, byte _mux);
 
@@ -282,10 +285,32 @@ class ADS129X {
         static void addEvent(const char *data);
 
     private:
+        void sendCommand(byte command);
         int DRDY, CS; //pin numbers for "Data Ready" (DRDY) and "Chip Select" CS (Datasheet, pg. 26)
+        bool dataMode;
         CircularBuffer  dataBuffer;
         static int numEvents;
         static String events[MAX_EVENTS];
 };
+
+class ADS129xCommandLock {
+    public:
+        ADS129xCommandLock(ADS129X *i, bool r = true) : instance(i), restore(r) {
+            if (instance->dataMode) {
+                DBG("Stopping SDATAC");
+                instance->SDATAC();
+            }
+        }
+        virtual ~ADS129xCommandLock() {
+            if ((restore) && (instance->dataMode)) {
+                DBG("Restarting SDATAC");
+                instance->RDATAC();
+            }
+        }
+        private:
+        bool restore;
+        ADS129X *instance;
+};
+
 
 #endif

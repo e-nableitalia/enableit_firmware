@@ -155,6 +155,9 @@ Param params[] = {
     { "wifipwd", config.wifiPassword, true, false, "Giroscopio97" }, // "enable.it"
     { "wifi", config.wifi, false, true }, 
     { "apmode", config.apMode, true, false },
+    { "thingsboard", config.thingsboard, true, false, "dev.e-nableitalia.it" },
+    { "deviceid", config.deviceid, true, false, "ed629b30-16dd-11ee-be0f-a557af31b048" },
+    { "devicetoken", config.devicetoken, true, false, "bxj5xo14c80nxoxxsndu" },
     { "otaurl", config.otaurl, true, false, url },
     { "timeout", config.bootTimeout, false,  3 },
     { "app", config.mainApp, true, false, "emg" },

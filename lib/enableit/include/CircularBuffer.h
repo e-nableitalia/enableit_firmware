@@ -7,6 +7,8 @@
 
 #define CIRCULAR_BUFFER_H
 
+#include <freertos/stream_buffer.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -17,27 +19,31 @@ class CircularBuffer : public BufferProducer {
 public:
     CircularBuffer();
     
-    void produce(uint8_t value);
-    uint8_t consume();
+//    void produce(uint8_t value);
+//    uint8_t consume();
     void produce(uint8_t *buffer, int size);
-    virtual int consume(uint8_t *buffer, int size, bool fill = true);
+    virtual int consume(uint8_t *buffer, int size, int timeout = 0);
         
     void dump();
 
-    int avail() { return _avail; }
-    void size(int s,int datalen);
-    inline int size() { return sz; };
-    inline int data_size() { return datalen; };
+    virtual int avail(); // { return ((m_head == m_tail) && !m_empty) ? m_size : (m_head - m_tail + m_size) % m_size; }
+    void size(int s,int datalen, int frame);
+    inline int size() { return m_size; };
+    inline int data_size() { return m_datalen; };
 
 private:
+	int		m_size;		// Buffer size
+    int     m_datain;
+    int     m_dataout;
+    int     m_datalen;
+    uint8_t *m_buffer;
+    StreamBufferHandle_t m_streambuffer;
+    StaticStreamBuffer_t m_bufferdata;
+//	int		m_tail;		// Tail pointer
+//	int		m_head;		// Head pointer
 
-    int head;
-    int tail;
-    bool overflow;
-    int sz;
-    int _avail;
-    int datalen;
-    uint8_t *buffer;
+//	bool	m_empty;
+//    portMUX_TYPE m_mux;
 };
 
 #endif
