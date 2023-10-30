@@ -1,8 +1,8 @@
 #include <Arduino.h>
-#include <debug.h>
+#include <Console.h>
 #include <WiFi.h>
 #include <HttpsOTAUpdate.h>
-#include <OTAUpdateApp.h>
+#include "OTAUpdateApp.h"
 #include <Config.h>
 
 static const char *server_certificate = "";

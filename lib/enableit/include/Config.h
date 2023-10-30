@@ -48,9 +48,12 @@ public:
     String secretKey;
     String devApp;
     String mainApp;
+    String httpUsername;
+    String httpPassword;
     unsigned int  bootTimeout;
     unsigned int baudRate;
     bool wifi;
+    bool telnet;
     bool devMode;
     bool apMode;
     bool insights;

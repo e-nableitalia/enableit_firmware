@@ -21,7 +21,7 @@
 #include "ADS129X.h"
 #include <SPI.h>
 #include <mutex>
-#include <debug.h>
+#include <Console.h>
 
 
 std::mutex spi_mtx;

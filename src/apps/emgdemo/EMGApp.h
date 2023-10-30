@@ -9,7 +9,7 @@
 #define EMG_APP_H
 
 #include <Arduino.h>
-#include <debug.h>
+#include <Console.h>
 #include <BoardApp.h>
 
 #include <CommandParser.h>
@@ -43,6 +43,8 @@ class EMGApp : public BoardApp {
     void cmdBuffer();
     void cmdSequence();
     void cmdOffset();
+    void cmdListApps();
+    void cmdSwitchApp();
 
     void sendHost(String _host,int remotePort, int frame, int delay);
 

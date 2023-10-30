@@ -15,12 +15,14 @@
 
 #include <BoardManager.h>
 #include <NoopApp.h>
-#include <BootloaderApp.h>
-#include <OTAUpdateApp.h>
-#include <OTAWebUpdaterApp.h>
 #include <RebootApp.h>
-#include <EMGApp.h>
 
+#include "apps/bootloader/BootLoaderApp.h"
+#include "apps/otaupdater/OtaUpdateApp.h"
+#include "apps/webupdater/OTAWebUpdaterApp.h"
+#include "apps/emgdemo/EMGApp.h"
+#include "apps/pressuremouse/PressureApp.h"
+#include "apps/kinetichand/KineticHandApp.h"
 
 BootLoaderApp boot;
 NoopApp       noop;
@@ -28,6 +30,8 @@ OTAUpdateApp  otaupdate;
 OTAWebUpdater otaweb;
 RebootState   reboot;
 EMGApp        emg;
+PressureApp   pressure;
+KineticHandApp kinetic;
 
 void setup() {
     // initialize eBoar
@@ -40,6 +44,8 @@ void setup() {
     eBoard.addApp(&otaweb);
     eBoard.addApp(&reboot);
     eBoard.addApp(&emg);
+    eBoard.addApp(&pressure);
+    eBoard.addApp(&kinetic);
 
     // activate default state: bootloader
     eBoard.setApp(APP_BOOT);

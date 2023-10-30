@@ -7,6 +7,9 @@
 
 #define BOARD_APP_H
 
+// Max allowed applications
+#define MAX_APPS      16
+
 // default known applications
 #define APP_NOOP      "noop"
 #define APP_BOOT      "boot"
@@ -25,6 +28,7 @@ public:
     virtual void leave() = 0;
     virtual const char *name() = 0;
     void changeApp(const char *name);
+    BoardApp **apps();
 };
 
 #endif // BOARD_APP_H

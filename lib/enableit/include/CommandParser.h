@@ -8,7 +8,7 @@
 #define COMMAND_PARSER_H
 
 #include <Arduino.h>
-#include <debug.h>
+#include <Console.h>
 
 #define BUFFER_MAX      256
 #define MAX_ARGS        10
@@ -40,7 +40,6 @@ private:
     char *argv[MAX_ARGS];
     uint8_t argc;
 
-    bool echo;
     bool human;
     bool prompt;
     

@@ -2,7 +2,7 @@
 #include <mutex>
 #include <BoardManager.h>
 #include <Config.h>
-#include <debug.h>
+#include <Console.h>
 
 std::recursive_mutex state_mtx;
 
@@ -11,21 +11,14 @@ BoardManager eBoard;
 #endif
 
 BoardManager::BoardManager() {
-    // init serial with default baud rate
-    //Serial.begin(115200);
     currentApp = nullptr;
 }
 
 void BoardManager::init() {
 
-    debug_enable(true);
+    Console.init(115200,true);
+    
     DBG("Init");
-
-    config.init();
-
-//    if (config.baudRate != 0) {
-//        Serial.updateBaudRate(config.baudRate);
-//    }
 
     for (int i = 0; i < MAX_APPS; i++)
         apps[i] = nullptr;
@@ -38,12 +31,12 @@ bool BoardManager::addApp(BoardApp *state) {
         std::lock_guard<std::recursive_mutex> lck(state_mtx);
         for (int i = 0; i < MAX_APPS; i++)
             if (apps[i] == nullptr) {
-                DBG("Adding state[%s] in position[%d]", state->name(), i);
+                DBG("Adding App[%s] in position[%d]", state->name(), i);
                 apps[i] = state;
                 return true;
             }
     }
-    DBG("Failed to add state[%s]", state->name());
+    DBG("Failed to add App[%s]", state->name());
     return false;
 }
 
@@ -52,22 +45,26 @@ bool BoardManager::setApp(const char *state) {
     for (int i = 0; i < MAX_APPS; i++)
         if ((apps[i] != nullptr) && (!strcmp(state,apps[i]->name()))) {
             if (currentApp != nullptr) {
-                DBG("Leaving state[%s]", currentApp->name());
+                DBG("Leaving App[%s]", currentApp->name());
                 currentApp->leave();
             }
             currentApp = apps[i];
-            DBG("Entering state[%s]", currentApp->name());
+            DBG("Entering App[%s]", currentApp->name());
             currentApp->enter();
             return true;
         }
-    DBG("State[%s] not found", state);
-    panic(ENOENT, "State not found");
+    DBG("App[%s] not found", state);
+    panic(ENOENT, "App not found");
     return false;
 }
 
 void BoardApp::changeApp(const char *state) {
-    DBG("Going in state[%s]", state);
+    DBG("Going in App[%s]", state);
     eBoard.setApp(state);
+}
+
+BoardApp **BoardApp::apps() {
+    return eBoard.getApps();
 }
 
 void BoardManager::loop() {
@@ -106,4 +103,12 @@ void BoardManager::panic(int code, const char *description) {
         sleep(PANIC_TIMEOUT);
         ESP.restart();
     }
+}
+
+BoardApp *BoardManager::getCurrentApp() {
+    return currentApp;
+}
+
+BoardApp **BoardManager::getApps() {
+    return apps;
 }

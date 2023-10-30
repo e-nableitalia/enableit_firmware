@@ -1,8 +1,10 @@
-#include <BootLoader.h>
+#include "BootLoader.h"
 #include <Insights.h>
 #include <Esp.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
+#include <SPIFFS.h>
+#include <M5AtomS3.h>
 #include <Config.h>
 
 #define CMD_HELP    "* help - show this help"
@@ -49,12 +51,12 @@ void BootLoader::init(BoardApp *s) {
     DBG(""); DBG("");
     OUT("eNable.it - Bionic Platform");
 
-    Serial.print("Booting");
+    Console.print("Booting");
     for (int i = 0; i < 10; i++) {
-        Serial.print(".");
+        Console.print(".");
         usleep(200000);
     }
-    Serial.println("done");
+    Console.println("done");
 
     OUT("Firmware Rev %s", FWREV);
     
@@ -75,6 +77,12 @@ void BootLoader::init(BoardApp *s) {
  
     OUT("SDK: %s, Chip: %s, Chip id: %s", ESP.getSdkVersion(), ESP.getChipModel(), chipId.c_str());
     OUT("Fw Checksum: %s", ESP.getSketchMD5().c_str());
+
+#ifdef ARDUINO_M5Stack_ATOMS3
+    m5.begin();
+    m5.Lcd.println("eNable.it - Bionic Platform");
+    m5.Lcd.println("Firmware Rev " FWREV);
+#endif
 
     DBG("Initializing board config");
     config.init();
@@ -106,6 +114,13 @@ void BootLoader::init(BoardApp *s) {
 
     DBG("Commands loaded");
 
+    if(!SPIFFS.begin(true))
+    {
+        OUT("SPIFFS mount failed!");
+    } else {
+        OUT("SPIFFS partition configured");
+    }
+
     if (config.wifi) {
         doEnableWifi();
 
@@ -114,10 +129,7 @@ void BootLoader::init(BoardApp *s) {
             if (!tb.connected()) {
                 //subscribed = false;
                 // Connect to the ThingsBoard
-                DBG("Connecting to: ");
-                DBG(config.thingsboard.c_str());
-                DBG(" with token ");
-                DBG(config.devicetoken.c_str());
+                DBG("Connecting to ThingsBoard[%s] with token [%s]", config.thingsboard.c_str(),config.devicetoken.c_str());
                 if (!tb.connect(config.thingsboard.c_str(), config.devicetoken.c_str(), THINGSBOARD_PORT, config.deviceid.c_str())) {
                     ERR("Failed to connect");
                     return;
@@ -131,12 +143,22 @@ void BootLoader::init(BoardApp *s) {
                 tb.sendAttributeInt("channel", WiFi.channel());
             }
         }
+
+        if (config.telnet) {
+            DBG("Enabling telnet server");
+            Console.enableTelnet(true);
+        }
     } else {
         if (config.insights) {
             ERR("ESP Insights disabled, requires WiFi active to enable it");
         }
         wifion = false;
     }
+
+#ifdef ARDUINO_M5Stack_ATOMS3
+    m5.Lcd.print("IP: ");
+    m5.Lcd.print(WiFi.localIP().toString().c_str());
+#endif
 
     start = millis();
     DBG("Boot timeout[%d], start time[%d]", config.bootTimeout, start);

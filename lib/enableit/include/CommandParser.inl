@@ -4,13 +4,13 @@
 // Author: A.Navatta / e-Nable Italia
 
 #include <USB.h>
-#include <debug.h>
+#include <Console.h>
 #include <Console.h>
 #include <CommandParser.h>
 
 template <class TClass>
 CommandParser<TClass>::CommandParser() {
-    human = echo = prompt = true;
+    human = prompt = true;
     // command input
     row = 0;
     memset(line,0,BUFFER_MAX);
@@ -97,10 +97,7 @@ template <class TClass>
 void CommandParser<TClass>::parseLine(char *buffer) {
     DBG("Sending command:[%s]",buffer);
     while (*buffer) {
-        if (echo)
-            Console.print(*buffer);
-        else
-            Console.print('*');
+        Console.echo(*buffer);
 
         // queue char in buffer
         line[row++] = *buffer++;
@@ -117,6 +114,8 @@ void CommandParser<TClass>::parseLine(char *buffer) {
 
 template <class TClass>
 void CommandParser<TClass>::poll() {
+    Console.pool();
+
     if (prompt)
         display();
 
@@ -144,10 +143,7 @@ void CommandParser<TClass>::poll() {
             Console.print("\b \b");
         } else {
             // do char echo, if echo enabled
-            if (echo)
-                Console.print(readchar);
-            else
-                Console.print('*');
+            Console.echo(readchar);
 
             // queue char in buffer
             line[row++] = readchar;

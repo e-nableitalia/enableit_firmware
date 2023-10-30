@@ -16,7 +16,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ThingsBoard.h>
-#include <debug.h>
+#include <Console.h>
 #include <BoardApp.h>
 
 #include <CommandParser.h>

@@ -3,7 +3,7 @@
 #include <Esp.h>
 #include <ArduinoJson.h>
 #include <Cipher.h>
-#include <debug.h>
+#include <Console.h>
 #include <Config.h>
 #include <base64.h>
 #include <libb64/cdecode.h>
@@ -159,8 +159,11 @@ Param params[] = {
     { "deviceid", config.deviceid, true, false, "ed629b30-16dd-11ee-be0f-a557af31b048" },
     { "devicetoken", config.devicetoken, true, false, "bxj5xo14c80nxoxxsndu" },
     { "otaurl", config.otaurl, true, false, url },
+    { "httpusername", config.httpUsername, true, false, "admin" },
+    { "httppassword", config.httpPassword, true, false, "admin" },
     { "timeout", config.bootTimeout, false,  3 },
-    { "app", config.mainApp, true, false, "emg" },
+    { "app", config.mainApp, true, false, "kinetichand" },
+    { "telnet", config.telnet, true,  true },
     { "devmode", config.devMode, true,  false },
     { "devapp", config.devApp, true, false, "otaweb" },
     { "password", config.password, true, true, "secret" },

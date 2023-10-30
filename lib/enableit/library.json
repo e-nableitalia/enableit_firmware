@@ -18,9 +18,12 @@
     "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
     "homepage": "https://e-nable.it/",
     "dependencies": {
+      "spi" : "",
+      "WiFiClientSecure" : "",
       "knolleary/PubSubClient" : "~2.8",
       "bblanchon/ArduinoJson" : "~6.20.0",
-      "thingsboard/ThingsBoard" : "^0.10.2"
+      "thingsboard/ThingsBoard" : "^0.10.2",
+      "lennarthennigs/ESP Telnet" : "^2.1.2"
     },
     "frameworks": "*",
     "platforms": "*"
