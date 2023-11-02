@@ -18,7 +18,7 @@
 // wifipwd      string, wifi network password, default: enableit
 // apmode       bool, Access Point mode enabled, default: false
 // otaurl       string, URL for OTA Update
-// password     string, maintenance password
+// password     string, maintenance password, default: secret
 
 class Config
 {

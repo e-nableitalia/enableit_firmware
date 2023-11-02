@@ -64,11 +64,14 @@ private:
     void doEnableWifi();
     void doDisableWifi();
 
+    void interactiveMode();
+
     unsigned long start;
     BoardApp *state;
 
     CommandParser<BootLoader> parser;
     bool wifion;
+    bool devMode;
 };
 
 #endif // BOOTLOADER_H

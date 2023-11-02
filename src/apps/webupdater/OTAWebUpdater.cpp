@@ -48,7 +48,7 @@ String convertFileSize(const size_t bytes)
   {
     return String(bytes / 1024.0) + " kB";
   }
-  else if (bytes < 1073741824)
+  else // if (bytes < 1073741824) // additional check not needed, won't update more than MB
   {
     return String(bytes / 1048576.0) + " MB";
   }
@@ -56,7 +56,8 @@ String convertFileSize(const size_t bytes)
 
 void notFound(AsyncWebServerRequest *request) 
 {
-  request->send(404, "text/plain", "Page not found");
+  request->redirect("/manager");
+  //request->send(404, "text/plain", "Page not found");
 }
 
 

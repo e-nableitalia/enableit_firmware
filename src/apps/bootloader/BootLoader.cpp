@@ -44,6 +44,8 @@ void BootLoader::init(BoardApp *s) {
     state = s;
     bootState = BootState::WAIT_USERINPUT;
 
+    devMode = false;
+
 //    pinMode(BUTTON_PIN, INPUT);
 //    pinMode(LED_PIN, OUTPUT);
     DBG("I/O pin configured");
@@ -121,38 +123,55 @@ void BootLoader::init(BoardApp *s) {
         OUT("SPIFFS partition configured");
     }
 
+    wifion = false;
+
     if (config.wifi) {
         doEnableWifi();
 
-        if (config.deviceid != "") {
-            DBG("Enabling thingsboard");
-            if (!tb.connected()) {
-                //subscribed = false;
-                // Connect to the ThingsBoard
-                DBG("Connecting to ThingsBoard[%s] with token [%s]", config.thingsboard.c_str(),config.devicetoken.c_str());
-                if (!tb.connect(config.thingsboard.c_str(), config.devicetoken.c_str(), THINGSBOARD_PORT, config.deviceid.c_str())) {
-                    ERR("Failed to connect");
-                    return;
+        if (wifion) {
+            if (config.deviceid != "") {
+                DBG("Enabling thingsboard");
+                if (!tb.connected()) {
+                    //subscribed = false;
+                    // Connect to the ThingsBoard
+                    DBG("Connecting to ThingsBoard[%s] with token [%s]", config.thingsboard.c_str(),config.devicetoken.c_str());
+                    if (!tb.connect(config.thingsboard.c_str(), config.devicetoken.c_str(), THINGSBOARD_PORT, config.deviceid.c_str())) {
+                        ERR("Failed to connect");
+                        return;
+                    }
+                    // Sending a MAC address as an attribute
+                    tb.sendAttributeString("macAddress", WiFi.macAddress().c_str());
+                    tb.sendAttributeInt("rssi", WiFi.RSSI());
+                    tb.sendAttributeString("bssid", WiFi.BSSIDstr().c_str());
+                    tb.sendAttributeString("localIp", WiFi.localIP().toString().c_str());
+                    tb.sendAttributeString("ssid", WiFi.SSID().c_str());
+                    tb.sendAttributeInt("channel", WiFi.channel());
                 }
-                // Sending a MAC address as an attribute
-                tb.sendAttributeString("macAddress", WiFi.macAddress().c_str());
-                tb.sendAttributeInt("rssi", WiFi.RSSI());
-                tb.sendAttributeString("bssid", WiFi.BSSIDstr().c_str());
-                tb.sendAttributeString("localIp", WiFi.localIP().toString().c_str());
-                tb.sendAttributeString("ssid", WiFi.SSID().c_str());
-                tb.sendAttributeInt("channel", WiFi.channel());
             }
-        }
 
-        if (config.telnet) {
-            DBG("Enabling telnet server");
-            Console.enableTelnet(true);
+            if (config.telnet) {
+                DBG("Enabling telnet server");
+                Console.enableTelnet(true);
+            }
+
+            if (config.insights) {
+                if(Insights.begin(config.insightsKey.c_str())){
+                    DBG("=========================================");
+                    DBG("ESP Insights enabled Node ID %s", Insights.nodeID());
+                    DBG("=========================================");
+                } else {
+                    DBG("=========================================");
+                    DBG("ESP Insights enable failed");
+                    DBG("=========================================");
+                }
+            } else {
+                ERR("ESP Insights disabled, requires WiFi active to enable it");
+            }
+        } else {
+            DBG("Wifi failed to start");
         }
     } else {
-        if (config.insights) {
-            ERR("ESP Insights disabled, requires WiFi active to enable it");
-        }
-        wifion = false;
+        DBG("Wifi disabled");
     }
 
 #ifdef ARDUINO_M5Stack_ATOMS3
@@ -162,7 +181,8 @@ void BootLoader::init(BoardApp *s) {
 
     start = millis();
     DBG("Boot timeout[%d], start time[%d]", config.bootTimeout, start);
-    OUT("Press button in %d seconds to enter bootloader", config.bootTimeout);
+    OUT("Press button in %d seconds to activate dev application", config.bootTimeout);
+    OUT("or press any key on USB Serial to activate interactive mode");
 }
 
 void BootLoader::fini() {
@@ -174,22 +194,32 @@ void BootLoader::waitUserTimeout() {
 
     if ((now - start) < (config.bootTimeout * 1000)) {
         int value = digitalRead(BUTTON_PIN);
+
+        if (!value) {
+            devMode = true;
+        }
         
-        if ((!value) || (Console.available() > 0)) {
-            DBG("BOOT: Boot procedure stopped, switching to [%s]", config.devApp.c_str());
-            //digitalWrite(LED_PIN,0);
-            if (config.devApp == "boot") {
-                parser.display();
-                DBG("BOOT: Checking button state/serial in");
-                bootState = BootState::WAIT_COMMAND;
-            } else {
-                state->changeApp(config.devApp.c_str());        
-            }
+        if (Console.available() > 0) {
+            DBG("BOOT: Boot procedure stopped");
+
+            interactiveMode();
         }
     } else {
-        DBG("BOOT: Boot timeout expired, activating default application[%s]",config.mainApp.c_str());
-        state->changeApp(config.mainApp.c_str());
+        DBG("Start%d], now[%d]", start, now);
+        if (devMode) {
+            DBG("BOOT: Boot timeout expired, activating dev application[%s]",config.devApp.c_str());
+            state->changeApp(config.devApp.c_str());        
+        } else {
+            DBG("BOOT: Boot timeout expired, activating default application[%s]",config.mainApp.c_str());
+            state->changeApp(config.mainApp.c_str());
+        }
     }
+}
+
+void BootLoader::interactiveMode() {
+    DBG("BOOT: Entering in interactive mode");
+    parser.display();
+    bootState = BootState::WAIT_COMMAND;
 }
 
 void BootLoader::doEnableWifi() {
@@ -240,18 +270,6 @@ void BootLoader::doEnableWifi() {
             ("Error setting up MDNS responder!");
         }
         LOG("mDNS responder started");
-
-        if (config.insights) {
-            if(Insights.begin(config.insightsKey.c_str())){
-                DBG("=========================================");
-                DBG("ESP Insights enabled Node ID %s", Insights.nodeID());
-                DBG("=========================================");
-            } else {
-                DBG("=========================================");
-                DBG("ESP Insights enable failed");
-                DBG("=========================================");
-            }
-        }
 
         wifion = true;
     } else {
