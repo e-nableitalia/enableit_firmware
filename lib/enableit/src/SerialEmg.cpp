@@ -18,7 +18,7 @@
  */
 
 
-#include <debug.h>
+#include <Console.h>
 
 #include "SerialEmg.h"  
 
@@ -84,7 +84,7 @@ void SerialEmg::init() {
 
   bufferDepth = 2000; // 1 second buffer, default
 
-  ADS.WREG(ADS129X_REG_CONFIG3, (1<<ADS129X_BIT_PD_REFBUF) | (1<<6) | /* RLDRF is 2.4V */ /* (1<<ADS129X_BIT_RLD_MEAS) | */ (1<<ADS129X_BIT_RLDREF_INT) | (1<<ADS129X_BIT_PD_RLD)); // enable internal reference
+  ADS.WREG(ADS129X_REG_CONFIG3, (1<<ADS129X_BIT_PD_REFBUF) | (1<<6) | /* RLDRF is 2.4V */ /* (1<<ADS129X_BIT_RLD_MEAS) | */ (1<<ADS129X_BIT_RLDREF_INT)   | (1<<ADS129X_BIT_PD_RLD)); // enable internal reference
   value = ADS.RREG(ADS129X_REG_CONFIG3);
   DBG("ADS129X_REG_CONFIG3[0x%x]", value);
 

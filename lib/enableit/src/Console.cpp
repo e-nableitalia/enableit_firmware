@@ -1,22 +1,41 @@
-
+#include <Arduino.h>
+#include <USB.h>
+#include <ESPTelnetStream.h>
 
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "debug.h"
+#include <Console.h>
 
-#if defined (STM32F2XX)	// Photon
-#include <particle.h>
+#define USE_USB_SERIAL
+
+#if ARDUINO_USB_CDC_ON_BOOT
+#ifdef USE_USB_SERIAL
+#define HWSerial Serial0
+#define USBSerial Serial
+#define DBGSerial Serial
 #else
-#include <Arduino.h>
+#define HWSerial Serial0
+#define USBSerial Serial
+#define DBGSerial Serial0
+#endif
+#else
+// Hardware serial
+#define HWSerial Serial
 #endif
 
-#include <Console.h>
+#if !defined(NO_GLOBAL_INSTANCES)
+ConsoleWrapper Console;
+#endif
+
+ESPTelnetStream telnetServer;
 
 // console output format buffer
 char format_buffer[FORMAT_BUFFERSIZE];
 
-bool debug_enabled = true;
+bool ConsoleWrapper::telnet_connected = false;
+
+//bool debug_enabled = true;
 
 #ifdef USE_USB_SERIAL
 static void usbEventCallback(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
@@ -75,20 +94,145 @@ static void usbEventCallback(void* arg, esp_event_base_t event_base, int32_t eve
 }
 #endif
 
-void debug_enable(bool d) {
+void ConsoleWrapper::init(int baudRate, bool d, bool t) {
+
   debug_enabled = d;
-  
-  Console.begin(115200);
-  Console.setDebugOutput(true);
+
+  HWSerial.begin(baudRate);
+  HWSerial.setDebugOutput(debug_enabled);
 
 #ifdef USE_USB_SERIAL  
-  USB.onEvent(usbEventCallback);
 
-  USBSerial.onEvent(usbEventCallback);
-  USBSerial.begin(115200);
+  if (debug_enabled) {
+      USB.onEvent(usbEventCallback);
+      USBSerial.onEvent(usbEventCallback);
+  }
 
   USB.begin();
+
+  USBSerial.begin(baudRate);
+
 #endif
+
+  telnet = t;
+  telnet_connected = false;
+
+  if (telnet) {
+    DBG("enabling telnet server");
+    telnetSetup();
+  }
+}
+
+void ConsoleWrapper::enableTelnet(bool t) {
+  if (t) {
+    if (!telnet) {
+      DBG("Enabling telnet server");
+      telnetSetup();
+      telnet_connected = false;
+    } else {
+      DBG("Telnet server already enabled");
+    }
+  } else {
+    if (telnet) {
+      DBG("Disconnecting clients and disabling telnet server");
+      telnetServer.disconnectClient(true);
+      telnetServer.stop();
+      telnet_connected = false;
+      telnet = false;
+    } else {
+      DBG("Telnet server already disabled");
+    }
+  }
+  telnet = t;
+}
+
+void ConsoleWrapper::telnetSetup() {
+  telnetServer.onConnect(&ConsoleWrapper::onTelnetConnect);
+  telnetServer.onConnectionAttempt(&ConsoleWrapper::onTelnetConnectionAttempt);
+  telnetServer.onReconnect(&ConsoleWrapper::onTelnetReconnect);
+  telnetServer.onDisconnect(&ConsoleWrapper::onTelnetDisconnect);
+  //telnetServer.onInputReceived(&ConsoleWrapper::onTelnetInput);
+
+  DBGNOLF("Telnet Server: ");
+  if (telnetServer.begin()) {
+    DBG("running");
+  } else {
+    DBG("error.");
+  }
+}
+
+void ConsoleWrapper::onTelnetConnect(String ip) {
+  DBG("Telnet connected from[%s]",ip.c_str());
+  DBG("Disabling serial I/O, switching to telnet");
+  
+  telnetServer.println("\nWelcome " + telnetServer.getIP());
+  telnetServer.println("(Use ^] + q  to disconnect.)");
+
+  telnet_connected = true;
+}
+
+void ConsoleWrapper::onTelnetDisconnect(String ip) {
+  DBGNOLF("Telnet: ");
+  DBGNOLF(ip.c_str());
+  DBG(" disconnected");
+
+  telnet_connected = false;
+}
+
+void ConsoleWrapper::onTelnetReconnect(String ip) {
+  DBGNOLF("Telnet: ");
+  DBGNOLF(ip.c_str());
+  DBG(" reconnected");
+}
+
+void ConsoleWrapper::onTelnetConnectionAttempt(String ip) {
+  DBGNOLF("Telnet: ");
+  DBGNOLF(ip.c_str());
+  DBG(" tried to connected");
+}
+
+void ConsoleWrapper::onTelnetInput(String str) {
+  HWSerial.print("Received[");
+  HWSerial.print(str.c_str());
+  HWSerial.println("]");
+}
+
+void ConsoleWrapper::pool() {
+    if (telnet)
+      telnetServer.loop();
+}
+
+size_t ConsoleWrapper::write(uint8_t c) {
+  if (telnet_connected)
+    return telnetServer.write(c);
+  else
+    return HWSerial.write(c);
+}
+
+int ConsoleWrapper::available() {
+  if (telnet_connected) {
+    return telnetServer.available();
+  } else  
+    return HWSerial.available();
+}
+
+int ConsoleWrapper::read() {
+  if (telnet_connected) {
+    return telnetServer.read();
+  } else  
+    return HWSerial.read();
+}
+
+void ConsoleWrapper::echo(uint8_t c) {
+  if (!telnet_connected)
+    HWSerial.write(c);
+}
+
+int ConsoleWrapper::peek() {
+  if (telnet_connected)
+    return telnetServer.peek();
+  else  
+    return HWSerial.peek();
 }
 
 // Serial debug function
@@ -96,7 +240,7 @@ void debug_enable(bool d) {
 // accepted format arguments:
 // %d, %i -> integer
 // %s -> string
-void console_debug(const bool dbg, const char *prefix, bool addlf, const char *function, const char *format_str, ...) {
+void ConsoleWrapper::debug(const bool dbg, const char *prefix, bool addlf, const char *function, const char *format_str, ...) {
   
     if ((dbg) && (!debug_enabled)) return;
 
@@ -207,8 +351,10 @@ void console_debug(const bool dbg, const char *prefix, bool addlf, const char *f
     // terminate string
     *bp = 0;
     if (addlf) {
-      Console.println(format_buffer);
+      println(format_buffer);
     } else {
-      Console.print(format_buffer);
+      print(format_buffer);
     }
 }
+
+

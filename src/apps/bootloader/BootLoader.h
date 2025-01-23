@@ -16,7 +16,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ThingsBoard.h>
-#include <debug.h>
+#include <Console.h>
 #include <BoardApp.h>
 
 #include <CommandParser.h>
@@ -64,11 +64,14 @@ private:
     void doEnableWifi();
     void doDisableWifi();
 
+    void interactiveMode();
+
     unsigned long start;
     BoardApp *state;
 
     CommandParser<BootLoader> parser;
     bool wifion;
+    bool devMode;
 };
 
 #endif // BOOTLOADER_H

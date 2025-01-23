@@ -8,7 +8,7 @@
 #define NOOP_APP_H
 
 #include <Arduino.h>
-#include <debug.h>
+#include <Console.h>
 #include <BoardApp.h>
 
 #include "Insights.h"

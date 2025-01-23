@@ -5,7 +5,8 @@
  *      Author: joseph
  */
 
-#include "Cipher.h"
+#include <Cipher.h>
+#include <Console.h>
 
 Cipher::Cipher() {
   // default unsecure key, its highly recommended to use the overloaded constructor and the function setKey()
@@ -33,19 +34,19 @@ void Cipher::setKey(char * key) {
     (String(key).substring(0,16)).toCharArray(privateCipherKey, 17);
     
     #ifdef CIPHER_DEBUG
-      Serial.println("[cipher] error: cipher key to long! Will be cutted to 16 characters.");
-      Serial.println("[cipher] => " + String(key));
-      Serial.println("[cipher] => " + String(privateCipherKey));
+      Console.println("[cipher] error: cipher key to long! Will be cutted to 16 characters.");
+      Console.println("[cipher] => " + String(key));
+      Console.println("[cipher] => " + String(privateCipherKey));
     #endif  
   } else if( strlen(key) < 16 ) {
     privateCipherKey = "abcdefghijklmnop";
     
     #ifdef CIPHER_DEBUG
-      Serial.println("[cipher] error: cipher key to short! Standard cipher key will be used.");
+      Console.println("[cipher] error: cipher key to short! Standard cipher key will be used.");
     #endif
   } else {
     #ifdef CIPHER_DEBUG
-      Serial.println("[cipher] cipher key length matched. Using this key.");
+      Console.println("[cipher] cipher key length matched. Using this key.");
     #endif
     privateCipherKey = key;
   }

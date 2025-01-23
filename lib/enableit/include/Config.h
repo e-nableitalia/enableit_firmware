@@ -18,7 +18,7 @@
 // wifipwd      string, wifi network password, default: enableit
 // apmode       bool, Access Point mode enabled, default: false
 // otaurl       string, URL for OTA Update
-// password     string, maintenance password
+// password     string, maintenance password, default: secret
 
 class Config
 {
@@ -48,9 +48,12 @@ public:
     String secretKey;
     String devApp;
     String mainApp;
+    String httpUsername;
+    String httpPassword;
     unsigned int  bootTimeout;
     unsigned int baudRate;
     bool wifi;
+    bool telnet;
     bool devMode;
     bool apMode;
     bool insights;

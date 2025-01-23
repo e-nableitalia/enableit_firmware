@@ -11,12 +11,10 @@
 
 // This library provides the functionality of OTA Firmware Upgrade
 #include <HttpsOTAUpdate.h>
-#include <debug.h>
+#include <Console.h>
 
 #include <BoardApp.h>
 
-// Max allowed applications
-#define MAX_APPS      16
 // Timeout in secs for error print in dev mode
 #define PANIC_TIMEOUT   20
 
@@ -33,6 +31,9 @@ public:
     bool addApp(BoardApp *state);
 
     void panic(int code, const char *description);
+
+    BoardApp **getApps();
+    BoardApp *getCurrentApp();
 
 private:
     void setApp(BoardApp *state);

@@ -1,5 +1,5 @@
 #include <BioTelemetry.h>
-#include <EMGApp.h>
+#include "EMGApp.h"
 #include <WiFiUdp.h>
 
 uint8_t _buffer[6000];
@@ -23,6 +23,8 @@ uint8_t _buffer[6000];
 #define CMD_UPDATE "* update"
 #define CMD_SEQUENCE "* sequence <mode> <channel>, where mode is burst|temp, channel is optional channel number"
 #define CMD_OFFSET "* offset <value>, set dc offset"
+#define CMD_SWITCH    "* switch <appname> - switch to <appname> application"
+#define CMD_LIST    "* list - List available applications"
 #define CMD_HELP    "* help - show this help"
 
 typedef struct {
@@ -67,11 +69,13 @@ void EMGApp::enter() {
     parser.add("status", CMD_STATUS, &EMGApp::cmdStatus);
     parser.add("read", CMD_READ, &EMGApp::cmdRead);
     parser.add("write", CMD_WRITE, &EMGApp::cmdWrite);
-    parser.add("reboot", CMD_REBOOT, &EMGApp::cmdReboot);
-    parser.add("update", CMD_UPDATE, &EMGApp::cmdUpdate);
     parser.add("sequence", CMD_SEQUENCE, &EMGApp::cmdSequence);
     parser.add("offset", CMD_OFFSET, &EMGApp::cmdOffset);
     parser.add("host", CMD_HOST, &EMGApp::cmdDestHost);
+    parser.add("reboot", CMD_REBOOT, &EMGApp::cmdReboot);
+    parser.add("update", CMD_UPDATE, &EMGApp::cmdUpdate);
+    parser.add("switch", CMD_SWITCH, &EMGApp::cmdSwitchApp);
+    parser.add("list", CMD_LIST, &EMGApp::cmdListApps);
     parser.add("help", CMD_HELP, &EMGApp::cmdHelp);
 
     telemetry.init();
@@ -222,6 +226,21 @@ void EMGApp::cmdReboot() {
 void EMGApp::cmdUpdate() {
    OUT("** Start OTA Web Update **");
    changeApp(APP_OTAWEBUPDATE);
+}
+
+void EMGApp::cmdSwitchApp() {
+    String appName = parser.getString(1);
+    OUT("** Switching to application[%s] **", appName.c_str());
+    changeApp(appName.c_str());
+}
+
+void EMGApp::cmdListApps() {
+    BoardApp **_apps = apps();
+    DBG("List of available apps:");
+    for (int i = 0; i < MAX_APPS; i++) {
+        if (_apps[i]) 
+            DBG("App[%s]", _apps[i]->name());
+    }
 }
 
 void EMGApp::cmdSetup() {

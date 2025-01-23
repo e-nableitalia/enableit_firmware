@@ -3,7 +3,7 @@
 #include <Esp.h>
 #include <ArduinoJson.h>
 #include <Cipher.h>
-#include <debug.h>
+#include <Console.h>
 #include <Config.h>
 #include <base64.h>
 #include <libb64/cdecode.h>
@@ -19,7 +19,7 @@ const char *secretkey = "7SgNsZ3^EX^sgK#n";
 #define TYPE_BOOL       2
 #define TYPE_ENCRYPTED  3
 
-#define STORAGE       "enable.it"
+#define STORAGE       "enableit"
 #define SIGNATURE     "configv1"
 #define SIGNATURE_LEN   sizeof(SIGNATURE)
 
@@ -60,7 +60,7 @@ String decode(String value) {
     int decoded_len = base64_decode_chars(value.c_str(),value.length(),buffer);
 
     String decoded = cipher->decryptString(buffer);
-    DBG("Encoding[%s], key[%s], decoded value[%s]",
+    DBG("Encoded[%s], key[%s], decoded value[%s]",
         value.c_str(), config.secretKey.c_str(), decoded.c_str());
 
     return decoded;
@@ -151,19 +151,22 @@ public:
 };
 
 Param params[] = {
-    { "wifissid", config.wifiSsid, true, false, "ZTE-c2839a" }, // "enable.it"
-    { "wifipwd", config.wifiPassword, true, false, "Giroscopio97" }, // "enable.it"
+    { "wifissid", config.wifiSsid, true, false, "enable-test" }, 
+    { "wifipwd", config.wifiPassword, true, false, "enableit" }, 
     { "wifi", config.wifi, false, true }, 
     { "apmode", config.apMode, true, false },
     { "thingsboard", config.thingsboard, true, false, "dev.e-nableitalia.it" },
     { "deviceid", config.deviceid, true, false, "ed629b30-16dd-11ee-be0f-a557af31b048" },
     { "devicetoken", config.devicetoken, true, false, "bxj5xo14c80nxoxxsndu" },
     { "otaurl", config.otaurl, true, false, url },
+    { "httpusername", config.httpUsername, true, false, "admin" },
+    { "httppassword", config.httpPassword, true, false, "admin" },
     { "timeout", config.bootTimeout, false,  3 },
-    { "app", config.mainApp, true, false, "emg" },
+    { "app", config.mainApp, true, false, "kinetichand" },
+    { "telnet", config.telnet, true,  true },
     { "devmode", config.devMode, true,  false },
     { "devapp", config.devApp, true, false, "otaweb" },
-    { "password", config.password, true, true, "secret" },
+    { "password", config.password, true, true, "tDCKZkmnGseokNvfW/kOvQ==" },
     { "insights", config.insights, true,  false },
     { "insightskey", config.insightsKey, true, false, insights_auth_key },
     { "baudrate", config.baudRate, false, 115200 }
@@ -227,7 +230,7 @@ void Config::reset() {
 }
 
 void Config::save() {
-    DBG("Preferences save");
+    DBG("Preferences saved");
     // read default preferences
     Preferences preferences;
     preferences.begin(STORAGE, false);

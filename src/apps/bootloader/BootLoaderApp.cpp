@@ -1,7 +1,7 @@
 #include <Arduino.h>
-#include <debug.h>
-#include <BootLoaderApp.h>
-#include <BootLoader.h>
+#include <Console.h>
+#include "BootLoaderApp.h"
+#include "BootLoader.h"
 
 BootLoader bootloader;
 

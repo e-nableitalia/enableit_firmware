@@ -9,7 +9,7 @@
 #define REBOOTSTATE_H
 
 #include <Arduino.h>
-#include <debug.h>
+#include <Console.h>
 #include <BoardApp.h>
 
 // Timeout in secs before reboot

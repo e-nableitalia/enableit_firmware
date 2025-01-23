@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <mutex>
-#include <debug.h>
+#include <Console.h>
 #include <CircularBuffer.h>
 
 CircularBuffer::CircularBuffer() {

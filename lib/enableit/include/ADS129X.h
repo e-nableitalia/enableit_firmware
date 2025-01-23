@@ -26,7 +26,7 @@
 #include "WProgram.h"
 #endif
 
-#include <debug.h>
+#include <Console.h>
 #include <CircularBuffer.h>
 
 #define CHANNEL_DATA_SIZE   3 // 3 bytes, 24 bit
