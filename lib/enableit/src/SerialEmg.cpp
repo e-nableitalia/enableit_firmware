@@ -80,7 +80,7 @@ void SerialEmg::init() {
         DBG("ChipId: Unknown(%x)", value);            
   }
 
-  setRate(RATE_2K);
+  setRate(RATE_1K);
 
   bufferDepth = 2000; // 1 second buffer, default
 
@@ -315,23 +315,25 @@ void SerialEmg::setSrc(int channel, CHANNEL_SRC src) {
 }
 
 void SerialEmg::enable(int channel) {
-  byte value = ADS.RREG(ADS129X_REG_CH1SET + channel);
-  DBG("Enabling Channel[%d]", channel);
-  byte newvalue = value & 0x7F; // clear first bit
+  // byte value = ADS.RREG(ADS129X_REG_CH1SET + channel);
+  // DBG("Enabling Channel[%d]", channel);
+  // byte newvalue = value & 0x7F; // clear first bit
 
   state |= 1 << channel;
     
-  ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  // ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  ADS.configChannel(channel, false, ADS129X_GAIN_6X, ADS129X_MUX_NORMAL);
 }
 
 void SerialEmg::disable(int channel) {
-  byte value = ADS.RREG(ADS129X_REG_CH1SET + channel);
-  DBG("Disabling Channel[%d]", channel);
-  byte newvalue = value | 0x80; // set first bit
+  // byte value = ADS.RREG(ADS129X_REG_CH1SET + channel);
+  // DBG("Disabling Channel[%d]", channel);
+  // byte newvalue = value | 0x80; // set first bit
 
   state &= ~(1 << channel);
     
-  ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  //ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  ADS.configChannel(channel, true, ADS129X_GAIN_6X, ADS129X_MUX_SHORT);
 }
 
 void SerialEmg::setBuffer(int size) {
@@ -341,16 +343,8 @@ void SerialEmg::setBuffer(int size) {
 
 /* Check if there is data available, if so copy it to data */
 bool SerialEmg::readData(long *data, int timeout) {
-  uint32_t start = micros();
-  while (!ADS.getData(data)) {
-    uint32_t delta = micros() - start;
-    if (delta > timeout) {
-      ERR("Read timeout expired");
-      return false;
-    }
 
-  }
-  return true;
+  return ADS.getData(data,timeout);
 }
 
 int SerialEmg::readData(uint8_t *buffer, int size, bool single_frame) {

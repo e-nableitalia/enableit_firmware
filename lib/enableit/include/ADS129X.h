@@ -262,7 +262,7 @@ class ADS129X {
         // Data Read Commands
         void RDATAC();
         void SDATAC();
-        bool RDATA(long *buffer);
+        void RDATA(long *buffer);
 
         // Register Read/Write Commands
         byte RREG(byte _address);
@@ -275,7 +275,7 @@ class ADS129X {
         void setBufferedTransfer(int size);
         BufferProducer *getBufferProducer();
         byte getDeviceId();
-        boolean getData(long *buffer);
+        boolean getData(long *buffer, int timeout);
         long getStatus();
         int getTicks();
         int avail();

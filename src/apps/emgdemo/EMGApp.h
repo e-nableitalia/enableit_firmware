@@ -55,6 +55,10 @@ class EMGApp : public BoardApp {
     double      offset;
     bool        polling;
     bool        streaming;
+    bool        offset_mode;
+    double      alpha;
+    double      average;
+    int         channel;
     int         delay;
     RTPPacket   packet;
     CommandParser<EMGApp> parser;
