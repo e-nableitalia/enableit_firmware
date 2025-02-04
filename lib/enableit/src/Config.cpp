@@ -20,7 +20,7 @@ const char *secretkey = "7SgNsZ3^EX^sgK#n";
 #define TYPE_ENCRYPTED  3
 
 #define STORAGE       "enableit"
-#define SIGNATURE     "configv1"
+#define SIGNATURE     "configv2"
 #define SIGNATURE_LEN   sizeof(SIGNATURE)
 
 #if !defined(NO_GLOBAL_INSTANCES)
@@ -153,7 +153,7 @@ public:
 Param params[] = {
     { "wifissid", config.wifiSsid, true, false, "enable-test" }, 
     { "wifipwd", config.wifiPassword, true, false, "enableit" }, 
-    { "wifi", config.wifi, false, true }, 
+    { "wifi", config.wifi, false, false }, 
     { "apmode", config.apMode, true, false },
     { "thingsboard", config.thingsboard, true, false, "dev.e-nableitalia.it" },
     { "deviceid", config.deviceid, true, false, "ed629b30-16dd-11ee-be0f-a557af31b048" },
@@ -162,7 +162,7 @@ Param params[] = {
     { "httpusername", config.httpUsername, true, false, "admin" },
     { "httppassword", config.httpPassword, true, false, "admin" },
     { "timeout", config.bootTimeout, false,  3 },
-    { "app", config.mainApp, true, false, "kinetichand" },
+    { "app", config.mainApp, true, false, "emg" },
     { "telnet", config.telnet, true,  true },
     { "devmode", config.devMode, true,  false },
     { "devapp", config.devApp, true, false, "otaweb" },

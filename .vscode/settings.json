@@ -285,7 +285,17 @@
   "C_Cpp_Runner.useLeakSanitizer": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "files.associations": {
-    "*.readme": "cpp"
+    "*.readme": "cpp",
+    "chrono": "cpp",
+    "*.tcc": "cpp",
+    "array": "cpp",
+    "istream": "cpp",
+    "tuple": "cpp",
+    "utility": "cpp",
+    "unordered_map": "cpp",
+    "fstream": "cpp",
+    "ostream": "cpp",
+    "sstream": "cpp"
   },
   "C_Cpp_Runner.msvcSecureNoWarnings": false
 }

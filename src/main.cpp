@@ -23,6 +23,7 @@
 #include "apps/emgdemo/EMGApp.h"
 #include "apps/pressuremouse/PressureApp.h"
 #include "apps/kinetichand/KineticHandApp.h"
+#include "apps/WifiTest/WifiTest.h"
 
 BootLoaderApp boot;
 NoopApp       noop;
@@ -32,6 +33,7 @@ RebootState   reboot;
 EMGApp        emg;
 PressureApp   pressure;
 KineticHandApp kinetic;
+WifiApp       wifiapp;
 
 void setup() {
     // initialize eBoar
@@ -46,6 +48,7 @@ void setup() {
     eBoard.addApp(&emg);
     eBoard.addApp(&pressure);
     eBoard.addApp(&kinetic);
+    eBoard.addApp(&wifiapp);
 
     // activate default state: bootloader
     eBoard.setApp(APP_BOOT);
