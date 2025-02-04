@@ -137,15 +137,16 @@ void BootLoader::init(BoardApp *s) {
                     DBG("Connecting to ThingsBoard[%s] with token [%s]", config.thingsboard.c_str(),config.devicetoken.c_str());
                     if (!tb.connect(config.thingsboard.c_str(), config.devicetoken.c_str(), THINGSBOARD_PORT, config.deviceid.c_str())) {
                         ERR("Failed to connect");
-                        return;
-                    }
-                    // Sending a MAC address as an attribute
-                    tb.sendAttributeString("macAddress", WiFi.macAddress().c_str());
-                    tb.sendAttributeInt("rssi", WiFi.RSSI());
-                    tb.sendAttributeString("bssid", WiFi.BSSIDstr().c_str());
-                    tb.sendAttributeString("localIp", WiFi.localIP().toString().c_str());
-                    tb.sendAttributeString("ssid", WiFi.SSID().c_str());
-                    tb.sendAttributeInt("channel", WiFi.channel());
+                    } else {
+                        DBG("Connected to ThingsBoard, sending attributes");
+                        // Sending a MAC address as an attribute
+                        tb.sendAttributeString("macAddress", WiFi.macAddress().c_str());
+                        tb.sendAttributeInt("rssi", WiFi.RSSI());
+                        tb.sendAttributeString("bssid", WiFi.BSSIDstr().c_str());
+                        tb.sendAttributeString("localIp", WiFi.localIP().toString().c_str());
+                        tb.sendAttributeString("ssid", WiFi.SSID().c_str());
+                        tb.sendAttributeInt("channel", WiFi.channel());
+                    } 
                 }
             }
 
@@ -205,7 +206,7 @@ void BootLoader::waitUserTimeout() {
             interactiveMode();
         }
     } else {
-        DBG("Start%d], now[%d]", start, now);
+        DBG("Start[%d], now[%d]", start, now);
         if (devMode) {
             DBG("BOOT: Boot timeout expired, activating dev application[%s]",config.devApp.c_str());
             state->changeApp(config.devApp.c_str());        

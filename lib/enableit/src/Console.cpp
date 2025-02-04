@@ -339,7 +339,26 @@ void ConsoleWrapper::debug(const bool dbg, const char *prefix, bool addlf, const
               --bspace;
             }
           };
-          break;                    
+          break;
+          case 'F': {
+            // decimal
+            char ibuffer[16];
+            double val = va_arg (argp, double);
+            snprintf(ibuffer,16,"%f",val);
+            // Sostituisci il punto con la virgola
+            for (char *p = ibuffer; *p != '\0'; p++) {
+                if (*p == '.') {
+                    *p = ',';
+                    break;
+                }
+            }
+            char *str = ibuffer;
+            while ((*str) && (bspace)) {
+              *bp++ = *str++;
+              --bspace;
+            }
+          };
+          break;                              
           default: {
             // skip format
           }

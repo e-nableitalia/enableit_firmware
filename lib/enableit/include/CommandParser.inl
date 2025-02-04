@@ -52,7 +52,7 @@ void CommandParser<TClass>::parse() {
         argv[++i] = strtok(NULL, " ");
     } while ((i < 30) && (argv[i] != NULL));
 
-    argc = i;
+    argc = i ? i-1 : 0;
 
     // execute command
     for (int i = 0; i < MAX_COMMANDS; i++) {
