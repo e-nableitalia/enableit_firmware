@@ -1,19 +1,22 @@
 /**
  * ADS129X.cpp
  *
- * Arduino library for the TI ADS129X series of analog-front-ends for
+ * Updated Arduino library for the TI ADS129X series of analog-front-ends for
  * biopotential measurements (EMG/EKG/EEG).
  *
  * This library offers two modes of operation: polling and interrupt.
  * Polling mode should only be used in situations where multiple devices
  * share the SPI bus. Interrupt mode is much faster (8kSPS on a Teensy 3.1),
  * but starts receiving immediately when DRDY goes high.
- * The API is the same for both modes. To activate polling mode add
- *     #define ADS129X_POLLING
- * as first line to your sketch.
  *
  * Based on code by Conor Russomanno (https://github.com/conorrussomanno/ADS1299)
  * Modified by Ferdinand Keil
+ * Modified by A. Navatta (enableIT):
+ * - Added configurable streaming and data mode
+ * - Added buffered transfer using freertos CircularBuffer
+ * - Added event logging
+ * - Added polling method
+ * - Added mutex for SPI access
  */
 
 #include "Arduino.h"
@@ -25,22 +28,23 @@
 
 std::mutex spi_mtx;
 
-bool ADS129X_isr;
-int ADS129X_CS;
-long ADS129X_data[9];
+
 bool ADS129X_newData;
 bool ADS129X_bufferedTransfer;
+
 void ADS129X_dataReadyISR();
 
-static bool channelEnabled[NUM_CHANNELS];
-// 8 channels + 1 status data, 24 bit, 3 byte data each
-uint8_t ADS129X_isrBuffer[CHANNEL_DATA_SIZE * NUM_CHANNELS];
-CircularBuffer *ADS129X_databuffer;
+bool channelEnabled[NUM_CHANNELS];
 
 int isr_in = 0;
 int isr_out = 0;
 int isr_tick = 0;
 
+int ADS129X::ADS129X_CS;
+CircularBuffer ADS129X::ADS129X_dataBuffer;
+// spi read buffer
+uint8_t ADS129X::ADS129X_tempBuffer[4] = { 0 };
+uint8_t ADS129X::ADS129X_data[CHANNEL_DATA_SIZE * (NUM_CHANNELS + 1)]  ={ 0 };
 String ADS129X::events[MAX_EVENTS];
 int ADS129X::numEvents = 0;
 
@@ -63,22 +67,22 @@ const char *gains[]{
     "Gain 8x",
     "Gain 12x"};
 
+ADS129X::ADS129X()
+{
+}
+
 /**
  * Initializes ADS129x library.
  * @param _DRDY data ready pin
  * @param _CS   chip-select pin
  */
-ADS129X::ADS129X()
-{
-}
-
 void ADS129X::init(int _DRDY, int _CS)
 {
     DBG("ADS Setup");
     // initialize the  data ready and chip select pins:
     DRDY = _DRDY;
-    CS = _CS;
     ADS129X_CS = _CS;
+
     DBG("SPI Setup");
     // SPI Setup
     SPI.begin(EMG_SCLK, EMG_MISO, EMG_MOSI, EMG_CS1);
@@ -98,16 +102,20 @@ void ADS129X::init(int _DRDY, int _CS)
     pinMode(EMG_START, OUTPUT);
     // pinMode(DRDY, INPUT_PULLUP);
     pinMode(DRDY, INPUT);
-    pinMode(CS, OUTPUT);
+    pinMode(ADS129X_CS, OUTPUT);
     // start triggered by start command
     digitalWrite(EMG_START, LOW);
     // cs high -> ads disabled
-    digitalWrite(CS, HIGH);
+    digitalWrite(ADS129X_CS, HIGH);
 
     for (int i = 0; i < NUM_CHANNELS; i++)
     {
         channelEnabled[i] = true;
     }
+
+    isrOn = false;
+
+    continousMode = false;
 
     DBG("ADS Setup complete");
 }
@@ -120,30 +128,27 @@ void ADS129X::RESET()
     ADS129xCommandLock lock(this, false);
 
     sendCommand(ADS129X_CMD_RESET);
+
     delay(10); // must wait 18 tCLK cycles to execute this command (Datasheet, pg. 38)
 
     // start triggered by start command
     digitalWrite(EMG_START, LOW);
     // cs high -> ads disabled
-    digitalWrite(CS, HIGH);
+    digitalWrite(ADS129X_CS, HIGH);
 
     // stop streaming
     sendCommand(ADS129X_CMD_SDATAC);
 
     // init variables
     ADS129X_newData = false;
-
-    dataMode = false;
+    isrOn = false;
+    continousMode = false;
 
     ADS129X_bufferedTransfer = false;
-    ADS129X_databuffer = &dataBuffer;
-    for (int i = 0; i < NUM_CHANNELS + 1; i++)
+    
+    for (int i = 0; i < CHANNEL_DATA_SIZE * (NUM_CHANNELS + 1); i++)
     {
         ADS129X_data[i] = 0;
-    }
-    for (int j = 0; j < NUM_CHANNELS * CHANNEL_DATA_SIZE; j++)
-    {
-        ADS129X_isrBuffer[j] = 0;
     }
 }
 
@@ -151,10 +156,10 @@ void ADS129X::RESET()
 void ADS129X::sendCommand(byte cmd)
 {
     DBG("Sending command[0x%x]", cmd);
-    digitalWrite(CS, LOW); // Low to communicate
+    digitalWrite(ADS129X_CS, LOW); // Low to communicate
     SPI.transfer(cmd);
     delayMicroseconds(2);
-    digitalWrite(CS, HIGH); // High to end communication
+    digitalWrite(ADS129X_CS, HIGH); // High to end communication
     delayMicroseconds(2);   // must way at least 4 tCLK cycles before sending another command (Datasheet, pg. 38)
 }
 
@@ -183,12 +188,13 @@ void ADS129X::STANDBY()
  */
 void ADS129X::RDATAC()
 {
-    if (dataMode)
+    if (isrOn) {
+        ERR("Interrupt enabled, use getData() instead");
         return;
+    }
 
     DBG("RDATAC");
 
-    dataMode = true;
     START();
     enableIrq();
     sendCommand(ADS129X_CMD_RDATAC);
@@ -200,12 +206,11 @@ void ADS129X::RDATAC()
 void ADS129X::SDATAC()
 {
     DBG("SDATAC");
-    if (dataMode)
-    {
-        dataMode = false;
-        disableIrq();
-    }
+    // irq is conditionally disabled, always try to disable it
+    disableIrq();
+    // stop sending data
     STOP();
+    // send Stop data continuous command
     sendCommand(ADS129X_CMD_SDATAC);
 }
 
@@ -234,16 +239,16 @@ void ADS129X::STOP()
 void ADS129X::enableIrq()
 {
     DBG("Attaching interrupt");
-    ADS129X_isr = true;
+    isrOn = true;
     attachInterrupt(DRDY, ADS129X_dataReadyISR, FALLING);
 }
 
 void ADS129X::disableIrq()
 {
-    if (ADS129X_isr)
+    if (isrOn)
     {
         DBG("Detach interrupt");
-        ADS129X_isr = false;
+        isrOn = false;
         detachInterrupt(DRDY);
     }
 }
@@ -253,11 +258,25 @@ void ADS129X::disableIrq()
  */
 void ADS129X::RDATA(long *buffer)
 {
+    if (ADS129X_bufferedTransfer)
+    {
+        ERR("Buffered transfer enabled, use getData() instead");
+        return;
+    }
 
-    digitalWrite(CS, LOW);
+    digitalWrite(ADS129X_CS, LOW);
     SPI.transfer(ADS129X_CMD_RDATA);
+
     // delayMicroseconds(2);
-    for (int i = 0; i < 9; i++)
+
+    // always read status
+    // read status keeping byte ordering
+    ADS129X_data[3] = 0;
+    ADS129X_data[2] = SPI.transfer(0x00);
+    ADS129X_data[1] = SPI.transfer(0x00);
+    ADS129X_data[0] = SPI.transfer(0x00);
+
+    for (int i = 0; i < NUM_CHANNELS; i++)
     {
         long dataPacket = 0;
         for (int j = 0; j < 3; j++)
@@ -270,7 +289,7 @@ void ADS129X::RDATA(long *buffer)
         else
             buffer[i] = dataPacket;
     }
-    digitalWrite(CS, HIGH);
+    digitalWrite(ADS129X_CS, HIGH);
 }
 
 /**
@@ -285,14 +304,14 @@ byte ADS129X::RREG(byte _address)
 
     ADS129xCommandLock lock(this);
 
-    digitalWrite(CS, LOW);            // Low to communicate
+    digitalWrite(ADS129X_CS, LOW);            // Low to communicate
     SPI.transfer(ADS129X_CMD_SDATAC); // SDATAC
     SPI.transfer(opcode1);            // RREG
     SPI.transfer(0x00);               // opcode2
     delayMicroseconds(1);
     byte data = SPI.transfer(0x00); // returned byte should match default of register map unless edited manually (Datasheet, pg.39)
     delayMicroseconds(2);
-    digitalWrite(CS, HIGH); // High to end communication
+    digitalWrite(ADS129X_CS, HIGH); // High to end communication
 
     return data;
 }
@@ -309,7 +328,7 @@ void ADS129X::RREG(byte _address, byte _numRegisters, byte *_data)
 
     ADS129xCommandLock lock(this);
 
-    digitalWrite(CS, LOW);            // Low to communicated
+    digitalWrite(ADS129X_CS, LOW);            // Low to communicated
     SPI.transfer(ADS129X_CMD_SDATAC); // SDATAC
     SPI.transfer(opcode1);            // RREG
     SPI.transfer(_numRegisters - 1);  // opcode2
@@ -318,7 +337,7 @@ void ADS129X::RREG(byte _address, byte _numRegisters, byte *_data)
         *(_data + i) = SPI.transfer(0x00); // returned byte should match default of register map unless previously edited manually (Datasheet, pg.39)
     }
     delayMicroseconds(2);
-    digitalWrite(CS, HIGH); // High to end communication
+    digitalWrite(ADS129X_CS, HIGH); // High to end communication
 }
 
 /**
@@ -333,12 +352,12 @@ void ADS129X::WREG(byte _address, byte _value)
 
     ADS129xCommandLock lock(this);
 
-    digitalWrite(CS, LOW); // Low to communicate
+    digitalWrite(ADS129X_CS, LOW); // Low to communicate
     SPI.transfer(opcode1);
     SPI.transfer(0x00); // opcode2; only write one register
     SPI.transfer(_value);
     delayMicroseconds(2);
-    digitalWrite(CS, HIGH); // Low to communicate
+    digitalWrite(ADS129X_CS, HIGH); // Low to communicate
 }
 
 /**
@@ -349,37 +368,37 @@ byte ADS129X::getDeviceId()
 {
     ADS129xCommandLock lock(this);
 
-    digitalWrite(CS, LOW);          // Low to communicate
+    digitalWrite(ADS129X_CS, LOW);          // Low to communicate
     SPI.transfer(ADS129X_CMD_RREG); // RREG
     SPI.transfer(0x00);             // Asking for 1 byte
     byte data = SPI.transfer(0x00); // byte to read (hopefully 0b???11110)
     delayMicroseconds(2);
-    digitalWrite(CS, HIGH); // Low to communicate
+    digitalWrite(ADS129X_CS, HIGH); // Low to communicate
 
     DBG("Device Id[%d]", data);
 
     return data;
 }
 
-void ADS129X::setBufferedTransfer(int size)
+void ADS129X::setBufferedTransfer(int size, int frame)
 {
     if (size > 0)
     {
         DBG("Buffered transfer enabled, size[%d]", size * NUM_CHANNELS);
         ADS129X_bufferedTransfer = true;
-        dataBuffer.size(size * NUM_CHANNELS, CHANNEL_DATA_SIZE, CHANNEL_DATA_SIZE * NUM_CHANNELS);
+        ADS129X_dataBuffer.size(size * NUM_CHANNELS, CHANNEL_DATA_SIZE, frame);
     }
     else
     {
         DBG("Buffered transfer disabled");
         ADS129X_bufferedTransfer = false;
-        dataBuffer.size(0, 0, 0);
+        ADS129X_dataBuffer.size(0, 0, 0);
     }
 }
 
 long ADS129X::getStatus()
 {
-    return ADS129X_data[0];
+    return (long)ADS129X_data[0];
 }
 
 int ADS129X::getTicks()
@@ -393,95 +412,104 @@ int ADS129X::getTicks()
  */
 void ADS129X_dataReadyISR()
 {
-
     isr_tick++;
 
-    digitalWrite(ADS129X_CS, LOW);
+    digitalWrite(ADS129X::ADS129X_CS, LOW);
 
     isr_in++;
 
+    // always read status
+    // read status keeping byte ordering
+    ADS129X::ADS129X_data[3] = 0;
+    ADS129X::ADS129X_data[2] = SPI.transfer(0x00);
+    ADS129X::ADS129X_data[1] = SPI.transfer(0x00);
+    ADS129X::ADS129X_data[0] = SPI.transfer(0x00);
+
     if (ADS129X_bufferedTransfer)
     {
-        // read data
-        // copy status keeping byte ordering
-        ((char *)ADS129X_data)[2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[0] = SPI.transfer(0x00);
-
         int k = 0;
 
         for (int i = 0; i < NUM_CHANNELS; i++)
         {
-            if (!channelEnabled[i]) {
-                for (int j = 0; j < CHANNEL_DATA_SIZE; j++) {
-                    SPI.transfer(0x00);
-                }
+            // always read data
+            ADS129X::ADS129X_tempBuffer[2] = SPI.transfer(0x00);
+            ADS129X::ADS129X_tempBuffer[1] = SPI.transfer(0x00);
+            ADS129X::ADS129X_tempBuffer[0] = SPI.transfer(0x00);
+
+            if (ADS129X::ADS129X_tempBuffer[2] & 0x80) {
+                ADS129X::ADS129X_tempBuffer[3] = 0xFF; // Sign extend for two's complement
             } else {
-                ADS129X_isrBuffer[k + 3] = 0;
-                ADS129X_isrBuffer[k + 2] = SPI.transfer(0x00);
-                ADS129X_isrBuffer[k + 1] = SPI.transfer(0x00);
-                ADS129X_isrBuffer[k + 0] = SPI.transfer(0x00);
+                ADS129X::ADS129X_tempBuffer[3] = 0x00;
+            }
+
+            if (channelEnabled[i]) {
+                // enqueue in buffer
+                ADS129X::ADS129X_data[CHANNEL_STATUS_SIZE + k + 0] = ADS129X::ADS129X_tempBuffer[0];
+                ADS129X::ADS129X_data[CHANNEL_STATUS_SIZE + k + 1] = ADS129X::ADS129X_tempBuffer[1];
+                ADS129X::ADS129X_data[CHANNEL_STATUS_SIZE + k + 2] = ADS129X::ADS129X_tempBuffer[2];
+                ADS129X::ADS129X_data[CHANNEL_STATUS_SIZE + k + 3] = ADS129X::ADS129X_tempBuffer[3];
+
                 k += 4;
             }
         }
 
         if (k > 0)
-            ADS129X_databuffer->produce(ADS129X_isrBuffer, k);
+            ADS129X::ADS129X_dataBuffer.produce(ADS129X::ADS129X_data + 4, k);
     }
     else
     {
         // channel 1
-        ((char *)ADS129X_data)[1 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[1 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[1 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[1 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[1 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[1 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[1 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[1 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
         // channel 2
-        ((char *)ADS129X_data)[2 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[2 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[2 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[2 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[2 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[2 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[2 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[2 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
         // channel 3
-        ((char *)ADS129X_data)[3 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[3 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[3 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[3 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[3 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[3 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[3 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[3 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
         // channel 4
-        ((char *)ADS129X_data)[4 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[4 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[4 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[4 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[4 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[4 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[4 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[4 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
         // channel 5
-        ((char *)ADS129X_data)[5 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[5 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[5 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[5 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[5 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[5 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[5 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[5 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
         // channel 6
-        ((char *)ADS129X_data)[6 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[6 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[6 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[6 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[6 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[6 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[6 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[6 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
         // channel 7
-        ((char *)ADS129X_data)[7 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[7 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[7 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[7 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[7 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[7 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[7 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[7 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
         // channel 8
-        ((char *)ADS129X_data)[8 * 4 + 3] = 0;
-        ((char *)ADS129X_data)[8 * 4 + 2] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[8 * 4 + 1] = SPI.transfer(0x00);
-        ((char *)ADS129X_data)[8 * 4 + 0] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[8 * CHANNEL_DATA_SIZE + 3] = 0;
+        ADS129X::ADS129X_data[8 * CHANNEL_DATA_SIZE + 2] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[8 * CHANNEL_DATA_SIZE + 1] = SPI.transfer(0x00);
+        ADS129X::ADS129X_data[8 * CHANNEL_DATA_SIZE + 0] = SPI.transfer(0x00);
 
         ADS129X_newData = true;
     }
 
-    digitalWrite(ADS129X_CS, HIGH);
+    digitalWrite(ADS129X::ADS129X_CS, HIGH);
 
     isr_out++;
 }
 
 int ADS129X::avail()
 {
-    return dataBuffer.avail();
+    return ADS129X_dataBuffer.avail();
 }
 
 /**
@@ -491,14 +519,15 @@ int ADS129X::avail()
  */
 boolean ADS129X::getData(long *buffer, int timeout)
 {
-    if (ADS129X_isr)
+    if (isrOn)
     {
         if (ADS129X_newData)
         {
             ADS129X_newData = false;
-            for (int i = 1; i < 9; i++)
+            // read only data, skipping status
+            for (int i = 0; i < NUM_CHANNELS; i++)
             {
-                buffer[i] = ADS129X_data[i];
+                buffer[i] = (long)(&ADS129X_data[i*CHANNEL_DATA_SIZE + CHANNEL_STATUS_SIZE]);
             }
             return true;
         }
@@ -577,7 +606,7 @@ void ADS129X::poll()
     */
 }
 
-BufferProducer *ADS129X::getBufferProducer()
+BufferProducer &ADS129X::getBufferProducer()
 {
-    return ADS129X_databuffer;
+    return ADS129X_dataBuffer;
 }

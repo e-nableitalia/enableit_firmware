@@ -1,11 +1,20 @@
-#include "BootLoader.h"
+#include <SPI.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <ThingsBoard.h>
 #include <Insights.h>
 #include <Esp.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <SPIFFS.h>
 #include <M5AtomS3.h>
+
+#include <BoardManager.h>
+
+#include <Console.h>
 #include <Config.h>
+
+#include "BootLoader.h"
 
 #define CMD_HELP    "* help - show this help"
 #define CMD_INFO    "* info - show active configuration"
@@ -51,7 +60,8 @@ void BootLoader::init(BoardApp *s) {
     DBG("I/O pin configured");
 
     DBG(""); DBG("");
-    OUT("eNable.it - Bionic Platform");
+    OUT("eNable.it");
+    OUT("Bionic Platform " FW_RELEASE);
 
     Console.print("Booting");
     for (int i = 0; i < 10; i++) {
@@ -82,7 +92,8 @@ void BootLoader::init(BoardApp *s) {
 
 #ifdef ARDUINO_M5Stack_ATOMS3
     m5.begin();
-    m5.Lcd.println("eNable.it - Bionic Platform");
+    m5.Lcd.println("eNable.it");
+    m5.Lcd.println("Bionic Platform v" FW_RELEASE);
     m5.Lcd.println("Firmware Rev " FWREV);
 #endif
 
@@ -345,9 +356,13 @@ void BootLoader::cmdRun() {
 void BootLoader::cmdList() {
     OUT("** List Apps **");
 
-    OUT("** TBA **");
+    BoardApp **apps = eBoard.getApps();
+    for (int i = 0; i < MAX_APPS; i++) {
+        if (apps[i] != nullptr) {
+            OUT("App[%d]: %s", i, apps[i]->name());
+        }
+    }
 }
-
 
 void BootLoader::cmdUnlock() {
     OUT("** Unlock **");

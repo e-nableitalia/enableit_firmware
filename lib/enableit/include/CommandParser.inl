@@ -113,7 +113,8 @@ void CommandParser<TClass>::parseLine(char *buffer) {
 }
 
 template <class TClass>
-void CommandParser<TClass>::poll() {
+bool CommandParser<TClass>::poll() {
+    bool returnValue = false;
     Console.pool();
 
     if (prompt)
@@ -121,6 +122,7 @@ void CommandParser<TClass>::poll() {
 
     // do serial input
     while (Console.available() > 0) {
+        returnValue = true;
         // read the incoming byte
         char readchar = Console.read();
         // check end of line
@@ -156,6 +158,8 @@ void CommandParser<TClass>::poll() {
             }
         }
     }
+
+    return returnValue;
 }
 
 template <class TClass>

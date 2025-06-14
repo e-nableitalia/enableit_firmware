@@ -22,7 +22,7 @@ class CommandParser {
 public:
     CommandParser();
     void init(TClass *i);
-    void poll();
+    bool poll();
     void add(const char *command, const char *help, void (TClass::*fpt)());
     void display();
     int getArgs() { return argc; }

@@ -132,8 +132,8 @@ void EMGApp::process()
 
     if (streaming)
     {
-        BufferProducer *buffer = emg.getBufferProducer();
-        int consumed = buffer->consume(_buffer + produced, frame - produced, delay);
+        BufferProducer &buffer = emg.getBufferProducer();
+        int consumed = buffer.consume(_buffer + produced, frame - produced, delay);
         produced += consumed;
 
         DBG("Consumed[%d], Produced[%d]", consumed, produced);
@@ -502,9 +502,9 @@ void EMGApp::cmdMode()
             int port = parser.getInt(4);
             DBG("Starting data streaming[%s:%d]", ip.c_str(), port);
             telemetry.streaming_enable(ip, port);
-            BufferProducer *buffer = emg.getBufferProducer();
-            DBG("Attaching buffer[0x%x]", buffer);
-            telemetry.attach(SEMG_CHANNEL0, buffer);
+            BufferProducer &buffer = emg.getBufferProducer();
+            DBG("Attaching buffer[0x%x]", &buffer);
+            telemetry.attach(SEMG_CHANNEL0, &buffer);
             DBG("Enabling channel SEMG_CHANNEL0(1)");
             telemetry.enable(SEMG_CHANNEL0);
         }
@@ -554,8 +554,8 @@ void EMGApp::cmdStatus()
     byte state = emg.getChannelState();
     int avail = emg.avail();
     emg.poll();
-    BufferProducer *buffer = emg.getBufferProducer();
-    int consumed = buffer->consume(_buffer, 6000);
+    BufferProducer &buffer = emg.getBufferProducer();
+    int consumed = buffer.consume(_buffer, 6000);
     DBG("Status[%x], channel state[%x], available data[%d], consumed[%d], ticks[%d]", status, state, avail, consumed, millis());
 }
 
@@ -648,8 +648,8 @@ void EMGApp::cmdSequence()
         emg.streaming(true);
         while (count < size)
         {
-            BufferProducer *buffer = emg.getBufferProducer();
-            int consumed = buffer->consume(_buffer, chunk, 100);
+            BufferProducer &buffer = emg.getBufferProducer();
+            int consumed = buffer.consume(_buffer, chunk, 100);
             if (consumed > 0)
             {
                 DBG("Consumed[%d]", consumed);

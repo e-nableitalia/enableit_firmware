@@ -24,6 +24,8 @@
 #include "apps/pressuremouse/PressureApp.h"
 #include "apps/kinetichand/KineticHandApp.h"
 #include "apps/WifiTest/WifiTest.h"
+#include "apps/motor/MotorApp.h"
+#include "apps/board/BoardTest.h"
 
 BootLoaderApp boot;
 NoopApp       noop;
@@ -34,8 +36,13 @@ EMGApp        emg;
 PressureApp   pressure;
 KineticHandApp kinetic;
 WifiApp       wifiapp;
+MotorApp      motor;
+BoardTest     boardTest;
+
+//#define TEST_MODE
 
 void setup() {
+#ifndef TEST_MODE
     // initialize eBoar
     eBoard.init();
     
@@ -49,12 +56,28 @@ void setup() {
     eBoard.addApp(&pressure);
     eBoard.addApp(&kinetic);
     eBoard.addApp(&wifiapp);
+    eBoard.addApp(&motor);
+    eBoard.addApp(&boardTest);
 
     // activate default state: bootloader
     eBoard.setApp(APP_BOOT);
+#else
+    Serial.begin(115200);
+    pinMode(8, OUTPUT);
+    Serial.println("Test mode");
+#endif
 }
 
 void loop() {
+#ifndef TEST_MODE 
     // main loop
    eBoard.loop();
+#else
+    digitalWrite(8, HIGH);
+    Serial.println("Pin High");
+    delay(1000);
+    digitalWrite(8, LOW);
+    Serial.println("Pin Low");
+    delay(1000);
+#endif
 }

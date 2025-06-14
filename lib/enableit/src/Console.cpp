@@ -7,22 +7,29 @@
 
 #include <Console.h>
 
-#define USE_USB_SERIAL
+#ifdef ARDUINO_M5Stack_ATOMS3
+#include <M5AtomS3.h>
+#define HWSerial Serial
+#define USBSerial Serial
+#else 
+
+#define DBG_USE_USB_SERIAL
 
 #if ARDUINO_USB_CDC_ON_BOOT
-#ifdef USE_USB_SERIAL
+
 #define HWSerial Serial0
 #define USBSerial Serial
+
+#ifdef DBG_USE_USB_SERIAL
 #define DBGSerial Serial
 #else
-#define HWSerial Serial0
-#define USBSerial Serial
 #define DBGSerial Serial0
 #endif
-#else
-// Hardware serial
+
+#else // ARDUINO_USB_CDC_ON_BOOT -> Hardware serial
 #define HWSerial Serial
 #endif
+#endif // ARDUINO_M5Stack_ATOMS3
 
 #if !defined(NO_GLOBAL_INSTANCES)
 ConsoleWrapper Console;
@@ -37,7 +44,7 @@ bool ConsoleWrapper::telnet_connected = false;
 
 //bool debug_enabled = true;
 
-#ifdef USE_USB_SERIAL
+#ifdef DBG_USE_USB_SERIAL
 static void usbEventCallback(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
   if (event_base == ARDUINO_USB_EVENTS) {
     arduino_usb_event_data_t * data = (arduino_usb_event_data_t*)event_data;
@@ -101,7 +108,7 @@ void ConsoleWrapper::init(int baudRate, bool d, bool t) {
   HWSerial.begin(baudRate);
   HWSerial.setDebugOutput(debug_enabled);
 
-#ifdef USE_USB_SERIAL  
+#ifdef DBG_USE_USB_SERIAL  
 
   if (debug_enabled) {
       USB.onEvent(usbEventCallback);

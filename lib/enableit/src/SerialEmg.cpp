@@ -348,19 +348,17 @@ bool SerialEmg::readData(long *data, int timeout) {
 }
 
 int SerialEmg::readData(uint8_t *buffer, int size, bool single_frame) {
-  BufferProducer *bp = ADS.getBufferProducer();
+  BufferProducer &bp = ADS.getBufferProducer();
 
-  if (bp) {
-    int available_data = bp->avail();
-    if ((single_frame) && (available_data < size)) {
-      return 0;
-    }
-    int chunk = min(size, available_data);
-    
-    bp->consume(buffer, chunk);
-    
+  int available_data = bp.avail();
+  
+  if ((single_frame) && (available_data < size)) {
+    return 0;
   }
-  return 0;
+  int chunk = min(size, available_data);
+  
+  return bp.consume(buffer, chunk);
+    
 }
 
 int SerialEmg::avail() {
