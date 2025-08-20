@@ -1,21 +1,24 @@
 #include <Motor.h>
 #include <Console.h>
-
-Motor PQ12Motor;
+#include <ESP32PWM.h>
 
 Motor::Motor()
 {
 }
 
-void Motor::init(bool enableSpeed)
+void Motor::init(int in1Pin, int in2Pin, int wiperPin, int isensePin, bool enableSpeed)
 {
+    this->in1Pin = in1Pin;
+    this->in2Pin = in2Pin;
+    this->wiperPin = wiperPin;
+    this->isensePin = isensePin;
     DBG("Init motor");
-
     speedControl = enableSpeed;
 
-    // common setup, set pin output
-    pinMode(MOTOR_IN1, OUTPUT);
-    pinMode(MOTOR_IN2, OUTPUT);
+    // Configura i pin come output/input
+    pinMode(in1Pin, OUTPUT);
+    pinMode(in2Pin, OUTPUT);
+
 
 #if defined(DRIVER_DRV8411) || defined(DRIVER_DRV8833)
     if (speedControl)
@@ -36,17 +39,24 @@ void Motor::init(bool enableSpeed)
     digitalWrite(MOTOR_ENABLE, TRUE);
 #endif
 
-#ifdef MOTOR_ISENSE
-    pinMode(MOTOR_ISENSE, INPUT);
-    DBG("Motor current sense pin configured as input");
-#endif
-    
+    if (isensePin != -1) {
+        pinMode(isensePin, INPUT);
+        DBG("Motor current sense pin configured as input");
+    }
+    if (wiperPin != -1) {
+        pinMode(wiperPin, INPUT);
+        DBG("Motor position wiper pin configured as input");
+        position = analogRead(wiperPin);
+        DBG("Motor position wiper initial value: %d", position);
+    } else {
+        position = 0; // Default position if wiperPin is not set
+        DBG("Motor position wiper pin not configured, using default position: %d", position);
+    }
+
     DBG("Motor initialized");
 
     stop(String("Init"));
-
     current = current_max = 0;
-
     poll();
 }
 
@@ -77,27 +87,28 @@ void Motor::speed(int speed)
 void Motor::forward(int pwm_speed)
 {
 #ifdef DRIVER_DRV8835
-    digitalWrite(MOTOR_IN1, 1);
-    digitalWrite(MOTOR_IN2, 0);
+    digitalWrite(in1Pin, HIGH);
+    digitalWrite(in2Pin, LOW);
+    DBG("Motor forward");
 #else // DRV8411, DRV8833
     if (speedControl)
     {
 #ifdef MOTOR_FASTDECAY_MODE
         // forward fast decay IN1(pwm), IN2(0)
-        analogWrite(MOTOR_IN1, pwm_speed);
-        analogWrite(MOTOR_IN2, 0);
+        analogWrite(in1Pin, pwm_speed);
+        analogWrite(in2Pin, 0);
         DBG("Motor forward, fast, speed: %d", pwm_speed);
 #else
         // forward slow decay IN1(1), IN2(pwm)
-        analogWrite(MOTOR_IN1, MOTOR_SPEED_MAX);
-        analogWrite(MOTOR_IN2, pwm_speed);
+        analogWrite(in1Pin, MOTOR_SPEED_MAX);
+        analogWrite(in2Pin, pwm_speed);
         DBG("Motor forward, slow, speed: %d", pwm_speed);
 #endif
     }
     else
     {
-        digitalWrite(MOTOR_IN1, 1);
-        digitalWrite(MOTOR_IN2, 0);
+        digitalWrite(in1Pin, 1);
+        digitalWrite(in2Pin, 0);
         DBG("Motor forward");
     }
 #endif
@@ -106,52 +117,52 @@ void Motor::forward(int pwm_speed)
 void Motor::reverse(int pwm_speed)
 {
 #ifdef DRIVER_DRV8835
-    digitalWrite(MOTOR_IN1, 1);
-    digitalWrite(MOTOR_IN2, 1);
-    DBG("Motor reverse");
+    digitalWrite(in1Pin, LOW);
+    digitalWrite(in2Pin, HIGH);
 #else // DRV8411, DRV8833
     if (speedControl)
     {
 #ifdef MOTOR_FASTDECAY_MODE
         // reverse fast decay IN1(0), IN2(pwm)
-        analogWrite(MOTOR_IN1, 0);
-        analogWrite(MOTOR_IN2, pwm_speed);
+        analogWrite(in1Pin, 0);
+        analogWrite(in2Pin, pwm_speed);
         DBG("Motor reverse, fast, speed: %d", pwm_speed);
 #else
         // reverse slow decay IN1(pwm), IN2(1)
-        analogWrite(MOTOR_IN1, pwm_speed);
-        analogWrite(MOTOR_IN2, MOTOR_SPEED_MAX);
+        analogWrite(in1Pin, pwm_speed);
+        analogWrite(in2Pin, MOTOR_SPEED_MAX);
         DBG("Motor reverse, slow, speed: %d", pwm_speed);
 #endif
     }
     else
     {
-        digitalWrite(MOTOR_IN1, 0);
-        digitalWrite(MOTOR_IN2, 1);
+        digitalWrite(in1Pin, 0);
+        digitalWrite(in2Pin, 1);
         DBG("Motor reverse");
     }
 #endif
+
 }
 
 void Motor::stop(String message)
 {
 
 #ifdef DRIVER_DRV8835
-    digitalWrite(MOTOR_IN1, 0);
-    digitalWrite(MOTOR_IN2, 0);
+    digitalWrite(in1Pin, HIGH);
+    digitalWrite(in2Pin, HIGH);
 #else // DRV8411, DRV8833
     if (speedControl)
     {
-        analogWrite(MOTOR_IN1, MOTOR_SPEED_MAX);
-        analogWrite(MOTOR_IN2, MOTOR_SPEED_MAX);
+        analogWrite(in1Pin, MOTOR_SPEED_MAX);
+        analogWrite(in2Pin, MOTOR_SPEED_MAX);
     }
     else
     {
-        digitalWrite(MOTOR_IN1, 1);
-        digitalWrite(MOTOR_IN2, 1);
+        digitalWrite(in1Pin, 1);
+        digitalWrite(in2Pin, 1);
     }
 #endif    
-    DBG("stop");
+    DBG("Motor stop");
 
     direction = STOP;
     DBG("Motor stop: %s", message.c_str());
@@ -163,8 +174,8 @@ void Motor::sleep()
     digitalWrite(MOTOR_ENABLE, LOW);
     DBG("Motor sleep");
 #else
-    digitalWrite(MOTOR_IN1, 0);
-    digitalWrite(MOTOR_IN2, 0);
+    digitalWrite(in1Pin, 0);
+    digitalWrite(in2Pin, 0);
     DBG("Motor sleep");
 #endif
 }
@@ -177,36 +188,43 @@ void Motor::wakeup()
 #endif
 }
 
+int Motor::getPosition()
+{   
+    if (wiperPin != -1) {
+        position = analogRead(wiperPin);
+        DBG("Motor position: %d", position);
+        return position;
+    } else {
+        DBG("Motor position not available");
+        return 0;
+    }
+}
+
 void Motor::poll()
 {
 #ifdef MOTOR_POSITION_PROTECTION
-    position = analogRead(MOTOR_WIPER);
-    if ((position > MOTOR_HIGH_THRESHOLD) && (direction == FORWARD))
-    {
-        stop("Poll, reverse motor protection enabled");
-        return;
-    }
-    else if ((position < MOTOR_LOW_THRESHOLD) && (direction == REVERSE))
-    {
-        stop("Poll, forward motor protection enabled");
-        return;
+    if (wiperPin != -1) {
+        position = analogRead(wiperPin);
+        if ((position > MOTOR_HIGH_THRESHOLD) && (direction == FORWARD)) {
+            stop("Poll, reverse motor protection enabled");
+            return;
+        } else if ((position < MOTOR_LOW_THRESHOLD) && (direction == REVERSE)) {
+            stop("Poll, forward motor protection enabled");
+            return;
+        }
     }
 #endif
+    if (isensePin != -1) {
+        current = analogRead(isensePin);
+        if (current > current_max) {
+            current_max = current;
+            DBG("Motor current(%d), max(%d)", current, current_max);
+        }
 #ifdef MOTOR_CURRENT_PROTECTION
-    current = analogRead(MOTOR_ISENSE);
-
-    
-    if (current > current_max) {
-        current_max = current;
-        DBG("Motor current(%d), max(%d)", current, current_max);
-    }
-
-#ifdef CURRENT_LIMIT
-    if (current > MOTOR_CURRENT_THRESHOLD)
-    {
-        stop("Poll, current limit reached");
-        return;
-    }
+        if (current > MOTOR_CURRENT_THRESHOLD) {
+            stop("Poll, current limit reached");
+            return;
+        }
 #endif
-#endif
+    }
 }

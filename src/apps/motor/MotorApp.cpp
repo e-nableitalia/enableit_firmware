@@ -10,6 +10,7 @@
 #define CMD_STOP "* stop, stop the motor"
 #define CMD_SET_PIN "* setpin <pin> <state>, set pin state (high/low)"
 #define CMD_SLEEP "* sleep, put the motor in sleep mode"
+#define CMD_SELECT_MOTOR "* selectmotor <n>, select active motor (0/1)"
 
 void MotorApp::enter() {
     DBG("enter MotorApp");
@@ -22,9 +23,16 @@ void MotorApp::enter() {
     parser.add("current", CMD_CURRENT, &MotorApp::cmdCurrent);
     parser.add("stop", CMD_STOP, &MotorApp::cmdStop);
     parser.add("setpin", CMD_SET_PIN, &MotorApp::cmdSetPin);
-    parser.add("sleep", CMD_SLEEP, &MotorApp::cmdSleep); // Aggiunto comando sleep
+    parser.add("sleep", CMD_SLEEP, &MotorApp::cmdSleep);
+    parser.add("selectmotor", CMD_SELECT_MOTOR, &MotorApp::cmdSelectMotor);
     // Initialize motor with DRV8411 and without speed control
-    PQ12Motor.init(true);
+    DBG("Initializing motors");
+    DBG("Initializing motor #1");
+    PQ12Motor[0].init(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_WIPER, MOTOR1_ISENSE, false);
+    #ifdef USE_TWO_MOTORS
+    DBG("Initializing motor #2");
+    PQ12Motor[1].init(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_WIPER, MOTOR2_ISENSE, false);
+    #endif
     // ...initialize other commands if needed...
 }
 
@@ -35,27 +43,26 @@ void MotorApp::leave() {
 
 void MotorApp::process() {
     parser.poll();
-    // Poll the PQ12 motor
-    PQ12Motor.poll();
+    PQ12Motor[selectedMotor].poll();
 }
 
 void MotorApp::cmdForward() {
-    PQ12Motor.forward(speed);
+    PQ12Motor[selectedMotor].forward(speed);
 }
 
 void MotorApp::cmdReverse() {
-    PQ12Motor.reverse(speed);
+    PQ12Motor[selectedMotor].reverse(speed);
 }
 
 void MotorApp::cmdGetPosition() {
-    int position = PQ12Motor.getPosition();
+    int position = PQ12Motor[selectedMotor].getPosition();
     DBG("Motor position: %d", position);
 }
 
 void MotorApp::cmdSetSpeed() {
     speed = parser.getInt(1);
     DBG("Motor speed set to: %d", speed);
-    PQ12Motor.speed(speed);
+    PQ12Motor[selectedMotor].speed(speed);
 }
 
 void MotorApp::cmdHelp() {
@@ -69,15 +76,16 @@ void MotorApp::cmdHelp() {
     DBG(CMD_STOP);
     DBG(CMD_SET_PIN);
     DBG(CMD_SLEEP);
+    DBG(CMD_SELECT_MOTOR);
 }
 
 void MotorApp::cmdCurrent() {
-    int current = PQ12Motor.getCurrent();
+    int current = PQ12Motor[selectedMotor].getCurrent();
     DBG("Motor current: %d mA", current);
 }
 
 void MotorApp::cmdStop() {
-    PQ12Motor.stop("user stop");
+    PQ12Motor[selectedMotor].stop("user stop");
     DBG("Motor stopped");
 }
 
@@ -111,6 +119,16 @@ void MotorApp::cmdSetPin() {
 }
 
 void MotorApp::cmdSleep() {
-    PQ12Motor.sleep();
+    PQ12Motor[selectedMotor].sleep();
     DBG("Motor put to sleep");
+}
+
+void MotorApp::cmdSelectMotor() {
+    int n = parser.getInt(1);
+    if (n < 0 || n >= NUM_MOTORS) {
+        DBG("Invalid motor index: %d", n);
+        return;
+    }
+    selectedMotor = n;
+    DBG("Selected motor: %d", selectedMotor);
 }

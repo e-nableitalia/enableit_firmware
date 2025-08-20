@@ -21,27 +21,23 @@
 //#define DRIVER_DRV8835
 #define DRIVER_DRV8411
 
-#define MOTOR_IN1       G5
-#define MOTOR_IN2       G6
 
 #if defined(DRIVER_DRV8835) || defined(DRIVER_DRV8833)
 #define MOTOR_ENABLE    Gx
 #define MOTOR_FAULT     Gx
 #endif
 
-// Atom S3 doesn't have enough pins to read the motor position
-// so motor position is disabled
-
-// WIPER is the potentiometer to read the motor position
-// MOTOR_POSITION_PROTECTION is the flag to enable the protection
+// MOTOR_IN1 is the pin to control the motor direction
+// MOTOR_IN2 is the pin to control the motor speed
+// MOTOR_ISENSE is the pin to read the motor current
 // MOTOR_WIPER is the pin to read the motor position
+
+// MOTOR_POSITION_PROTECTION is the flag to enable the protection
 //#define MOTOR_POSITION_PROTECTION   1
-//#define MOTOR_WIPER     G38
 
 // MOTOR_CURRENT_PROTECTION is the flag to enable the current protection
-// MOTOR_ISENSE is the pin to read the motor current
 #define MOTOR_CURRENT_PROTECTION     1
-#define MOTOR_ISENSE    G7
+
 #else
 // need to be defined per board specific
 #pragma message "Please define the motor pins for your board"
@@ -63,7 +59,7 @@ enum MOTOR_DIRECTION { FORWARD, REVERSE, STOP };
 class Motor {
 public:
     Motor();
-    void init(bool enableSpeed = false);
+    void init(int in1Pin, int in2Pin, int wiperPin = -1, int isensePin = -1, bool enableSpeed = false);
     void speed(int speed);
     void forward(int speed);
     void reverse(int speed);
@@ -72,17 +68,19 @@ public:
     void wakeup();
     void poll();
 
-    inline int getPosition() { return position; };
+    int getPosition();
     inline int getCurrent() { return current; };
 
 private:
+    int in1Pin;
+    int in2Pin;
+    int wiperPin;
+    int isensePin;
     int position;
     int current;
     int current_max;
     bool speedControl;
     MOTOR_DIRECTION direction;
 };
-
-extern Motor PQ12Motor;
 
 #endif
