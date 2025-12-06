@@ -59,12 +59,50 @@ The boards and firmware in this repository are under development and are intende
 
 ## Project Updates
 
-- **240110** - Initial file upload
-- **240113** - Updated to latest release, changes:
-  - Fixed mechanical issue (Atom S3 housing position)
-  - Reworked board polygons
-  - Completed 3D board models
-  - Replaced single pin 2.54 headers with wirepad
+### Firmware History
+
+- **2023-02-26** – Initial commit and first upload of firmware
+- **2023-03-10** – Added initial ADS1298 support and EMGApp
+- **2023-04-10** – Improved ADS1298 communication  
+  &nbsp;&nbsp;• Fixed circular buffer logic  
+  &nbsp;&nbsp;• Introduced ThingsBoard support  
+  &nbsp;&nbsp;• Added RTOS-based streaming in EMGApp
+- **2023-10-30** – Major update: applications, structure refactor  
+  &nbsp;&nbsp;• Added pressure apps and BTmouse app  
+  &nbsp;&nbsp;• Added support for M5 Atom S3 board  
+  &nbsp;&nbsp;• Updated OTAWebUpdater  
+  &nbsp;&nbsp;• Added Kinetic Hand support  
+  &nbsp;&nbsp;• Replaced debug.h with console  
+  &nbsp;&nbsp;• Added telnet console
+- **2023-11-02** – Updates on config, bootloader and OTAWebUpdater
+- **2024-01-23** – ADS1298 integration merged into main
+- **2025-02-04** – Improvements to EMG and bootloader logic  
+  &nbsp;&nbsp;• Added EMGFilters  
+  &nbsp;&nbsp;• Updated ADS129X interface  
+  &nbsp;&nbsp;• Sample rate changed to 1 kHz  
+  &nbsp;&nbsp;• Streaming only active channels  
+  &nbsp;&nbsp;• New EMGApp modes (sequence capture, offset calc)  
+  &nbsp;&nbsp;• Bootloader command parsing refactor + ThingsBoard enhancements  
+  &nbsp;&nbsp;• Added WiFi event handling app  
+  &nbsp;&nbsp;• Updated PlatformIO config
+- **2025-02-04** – HDLC protocol implementation added  
+  &nbsp;&nbsp;• Framing  
+  &nbsp;&nbsp;• Transport interface  
+  &nbsp;&nbsp;• Command mode handling
+- **2025-06-14** – New motor subsystem introduced  
+  &nbsp;&nbsp;• Added Motor and BoardTest apps  
+  &nbsp;&nbsp;• Speed/direction/sleep control  
+  &nbsp;&nbsp;• Analog testing and INA219 configuration  
+  &nbsp;&nbsp;• Bootloader shows firmware version + app list  
+  &nbsp;&nbsp;• Refactor of EMG components (BufferProducer)  
+  &nbsp;&nbsp;• Updated PlatformIO config  
+  &nbsp;&nbsp;• Improved command parser for new apps
+- **2025-08-20** – Refactor Motor class  
+  &nbsp;&nbsp;• Multi-motor support  
+  &nbsp;&nbsp;• Initial compatibility with DRV8411 Rev. B
+- **2025-12-06** – Added SMotor class and extended MotorApp commands  
+  &nbsp;&nbsp;• Waveshare SC Servo support  
+  &nbsp;&nbsp;• New motor commands
 
 **Known Issues:**  
 N/A
