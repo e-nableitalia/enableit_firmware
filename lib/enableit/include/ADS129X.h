@@ -29,7 +29,8 @@
 #include <Console.h>
 #include <CircularBuffer.h>
 
-#define CHANNEL_DATA_SIZE   3 // 3 bytes, 24 bit
+#define CHANNEL_DATA_SIZE   4 // 3 bytes, 24 bit, of data + 1 byte to align to long
+#define CHANNEL_STATUS_SIZE 4 // 1 byte of status data
 #define NUM_CHANNELS        8 // num max of channels
 #define SAMPLE_SIZE         2000 // 1 second assuming 2Khz sampling rate
 #define BUFFER_SIZE         (SAMPLE_SIZE * NUM_CHANNELS)
@@ -262,7 +263,7 @@ class ADS129X {
         // Data Read Commands
         void RDATAC();
         void SDATAC();
-        bool RDATA(long *buffer);
+        void RDATA(long *buffer);
 
         // Register Read/Write Commands
         byte RREG(byte _address);
@@ -272,10 +273,10 @@ class ADS129X {
         // Functions for setup and data retrieval
         void enableIrq();
         void disableIrq();
-        void setBufferedTransfer(int size);
-        BufferProducer *getBufferProducer();
+        void setBufferedTransfer(int size, int frame = CHANNEL_DATA_SIZE * NUM_CHANNELS);
+        BufferProducer &getBufferProducer();
         byte getDeviceId();
-        boolean getData(long *buffer);
+        boolean getData(long *buffer, int timeout);
         long getStatus();
         int getTicks();
         int avail();
@@ -284,11 +285,22 @@ class ADS129X {
         void poll();
         static void addEvent(const char *data);
 
+        // pin numbers for "Chip Select" (CS)
+        static int ADS129X_CS;         
+        // ads129x data buffer, add extra slot for status data
+        // 8 channels + 1 status data, 24 bit, 3 byte data each
+        static uint8_t ADS129X_data[CHANNEL_DATA_SIZE * (NUM_CHANNELS + 1)];
+        static uint8_t ADS129X_tempBuffer[CHANNEL_DATA_SIZE];
+
+        static CircularBuffer  ADS129X_dataBuffer;
+
     private:
         void sendCommand(byte command);
-        int DRDY, CS; //pin numbers for "Data Ready" (DRDY) and "Chip Select" CS (Datasheet, pg. 26)
-        bool dataMode;
-        CircularBuffer  dataBuffer;
+
+        int DRDY;   // pin numbers for "Data Ready" (DRDY)
+        bool isrOn; // interrupt enabled
+        bool continousMode; // continous read mode enabled
+
         static int numEvents;
         static String events[MAX_EVENTS];
 };
@@ -296,13 +308,13 @@ class ADS129X {
 class ADS129xCommandLock {
     public:
         ADS129xCommandLock(ADS129X *i, bool r = true) : instance(i), restore(r) {
-            if (instance->dataMode) {
+            if (instance->continousMode) {
                 DBG("Stopping SDATAC");
                 instance->SDATAC();
             }
         }
         virtual ~ADS129xCommandLock() {
-            if ((restore) && (instance->dataMode)) {
+            if ((restore) && (instance->continousMode)) {
                 DBG("Restarting SDATAC");
                 instance->RDATAC();
             }

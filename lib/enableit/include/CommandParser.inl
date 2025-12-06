@@ -52,7 +52,7 @@ void CommandParser<TClass>::parse() {
         argv[++i] = strtok(NULL, " ");
     } while ((i < 30) && (argv[i] != NULL));
 
-    argc = i;
+    argc = i ? i-1 : 0;
 
     // execute command
     for (int i = 0; i < MAX_COMMANDS; i++) {
@@ -113,7 +113,8 @@ void CommandParser<TClass>::parseLine(char *buffer) {
 }
 
 template <class TClass>
-void CommandParser<TClass>::poll() {
+bool CommandParser<TClass>::poll() {
+    bool returnValue = false;
     Console.pool();
 
     if (prompt)
@@ -121,6 +122,7 @@ void CommandParser<TClass>::poll() {
 
     // do serial input
     while (Console.available() > 0) {
+        returnValue = true;
         // read the incoming byte
         char readchar = Console.read();
         // check end of line
@@ -156,6 +158,8 @@ void CommandParser<TClass>::poll() {
             }
         }
     }
+
+    return returnValue;
 }
 
 template <class TClass>

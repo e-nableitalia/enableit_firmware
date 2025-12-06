@@ -12,16 +12,13 @@
 #define BOOTLOADER_H
 
 #include <Arduino.h>
-#include <SPI.h>
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
-#include <ThingsBoard.h>
-#include <Console.h>
 #include <BoardApp.h>
 
 #include <CommandParser.h>
 
-#define FWREV    "1.0." __DATE__ "." __TIME__
+#define FW_RELEASE "1.0"
+
+#define FWREV    FW_RELEASE "." __DATE__ "." __TIME__
 
 #define BUTTON_PIN  GPIO_NUM_0
 //#define LED_PIN     GPIO_NUM_25

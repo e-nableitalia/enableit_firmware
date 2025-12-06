@@ -97,7 +97,7 @@ public:
     long getStatus() { return ADS.getStatus(); }
     int getTicks() { return ADS.getTicks(); }
     byte getChannelState() { return state; }
-    BufferProducer *getBufferProducer() { return ADS.getBufferProducer(); }
+    BufferProducer &getBufferProducer() { return ADS.getBufferProducer(); }
 
     void poll() {
         ADS.poll();
