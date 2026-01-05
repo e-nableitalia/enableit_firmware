@@ -11,6 +11,7 @@
 #include <Arduino.h>
 #include <Console.h>
 #include <BoardApp.h>
+#include <BoardAppRegistrar.h>
 
 // Timeout in secs before reboot
 #define REBOOT_LOOPS  5
@@ -37,5 +38,8 @@ class RebootState : public BoardApp {
 
     const char *name() { return STATE_REBOOT; }
 };
+
+RebootState rebootApp;
+REGISTER_BOARD_APP(rebootApp);
 
 #endif // REBOOTSTATE_H

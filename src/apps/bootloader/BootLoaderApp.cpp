@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include <Console.h>
+#include <BoardAppRegistrar.h>
 #include "BootLoaderApp.h"
 #include "BootLoader.h"
 
-BootLoader bootloader;
+static BootLoader bootloader;
 
 void BootLoaderApp::enter() {
     DBG("Entering in Boot Loader state");
@@ -22,3 +23,6 @@ void BootLoaderApp::process() {
 const char *BootLoaderApp::name() {
     return APP_BOOT;
 }
+
+BootLoaderApp bootloaderApp;
+REGISTER_BOARD_APP(bootloaderApp);

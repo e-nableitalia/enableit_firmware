@@ -18,13 +18,18 @@
     "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
     "homepage": "https://e-nable.it/",
     "dependencies": {
-      "spi" : "",
-      "WiFiClientSecure" : "",
-      "knolleary/PubSubClient" : "~2.8",
-      "bblanchon/ArduinoJson" : "~6.20.0",
-      "thingsboard/ThingsBoard" : "^0.10.2",
-      "lennarthennigs/ESP Telnet" : "^2.1.2"
+      "spi": "",
+      "WiFiClientSecure": "",
+      "bblanchon/ArduinoJson": "^6.20.0",
+      "thingsboard/ThingsBoard": "^0.10.2",
+      "lennarthennigs/ESP Telnet": "^2.1.2",
+      "esphome/ESPAsyncWebServer-esphome": "^3.0.0",
+      "jchristensen/JC_Button": "^2.1.2",
+      "m5stack/M5Unified": "^0.1.6",
+      "m5stack/M5GFX": "^0.1.6",
+      "t-vk/ESP32 BLE Mouse": "^0.3.1",
+      "ESP32Servo": ""
     },
-    "frameworks": "*",
-    "platforms": "*"
+    "frameworks": ["arduino"],
+    "platforms": ["espressif32"]
   }

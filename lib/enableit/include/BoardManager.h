@@ -9,10 +9,9 @@
 
 #include <Arduino.h>
 
-// This library provides the functionality of OTA Firmware Upgrade
-#include <HttpsOTAUpdate.h>
 #include <Console.h>
 
+#include <Board.h>
 #include <BoardApp.h>
 
 // Timeout in secs for error print in dev mode
@@ -35,6 +34,10 @@ public:
     BoardApp **getApps();
     BoardApp *getCurrentApp();
 
+    Board &getBoard();
+
+    static BoardManager &instance();
+
 private:
     void setApp(BoardApp *state);
 
@@ -45,5 +48,9 @@ private:
 #if !defined(NO_GLOBAL_INSTANCES)
 extern BoardManager eBoard;
 #endif
+
+#define ENABLEIT_BOOT() eBoard.setApp(APP_BOOT)
+
+#define ENABLEIT_LOOP() eBoard.loop()
 
 #endif // BOARD_MANAGER_H

@@ -4,7 +4,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <SPIFFS.h>
-#include <M5AtomS3.h>
+#include <Board.h>
 #include <Config.h>
 
 #define CMD_HELP    "* help - show this help"
@@ -80,11 +80,9 @@ void BootLoader::init(BoardApp *s) {
     OUT("SDK: %s, Chip: %s, Chip id: %s", ESP.getSdkVersion(), ESP.getChipModel(), chipId.c_str());
     OUT("Fw Checksum: %s", ESP.getSketchMD5().c_str());
 
-#ifdef ARDUINO_M5Stack_ATOMS3
-    m5.begin();
-    m5.Lcd.println("eNable.it - Bionic Platform");
-    m5.Lcd.println("Firmware Rev " FWREV);
-#endif
+    board.begin();
+    display.println("eNable.it - Bionic Platform");
+    display.println("Firmware Rev " FWREV);
 
     DBG("Initializing board config");
     config.init();
@@ -174,10 +172,9 @@ void BootLoader::init(BoardApp *s) {
         DBG("Wifi disabled");
     }
 
-#ifdef ARDUINO_M5Stack_ATOMS3
-    m5.Lcd.print("IP: ");
-    m5.Lcd.print(WiFi.localIP().toString().c_str());
-#endif
+    display.setCursor(0, 0);
+    display.print("IP: ");
+    display.print(WiFi.localIP().toString().c_str());
 
     start = millis();
     DBG("Boot timeout[%d], start time[%d]", config.bootTimeout, start);

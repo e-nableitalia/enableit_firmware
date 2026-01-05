@@ -17,41 +17,41 @@
 #include <NoopApp.h>
 #include <RebootApp.h>
 
-#include "apps/bootloader/BootLoaderApp.h"
-#include "apps/otaupdater/OtaUpdateApp.h"
-#include "apps/webupdater/OTAWebUpdaterApp.h"
-#include "apps/emgdemo/EMGApp.h"
-#include "apps/pressuremouse/PressureApp.h"
-#include "apps/kinetichand/KineticHandApp.h"
+// #include "apps/bootloader/BootLoaderApp.h"
+// #include "apps/otaupdater/OtaUpdateApp.h"
+// #include "apps/webupdater/OTAWebUpdaterApp.h"
+// #include "apps/emgdemo/EMGApp.h"
+// #include "apps/pressuremouse/PressureApp.h"
+// #include "apps/kinetichand/KineticHandApp.h"
 
-BootLoaderApp boot;
-NoopApp       noop;
-OTAUpdateApp  otaupdate;
-OTAWebUpdater otaweb;
-RebootState   reboot;
-EMGApp        emg;
-PressureApp   pressure;
-KineticHandApp kinetic;
+// BootLoaderApp boot;
+// NoopApp       noop;
+// OTAUpdateApp  otaupdate;
+// OTAWebUpdater otaweb;
+// RebootState   reboot;
+// EMGApp        emg;
+// PressureApp   pressure;
+// KineticHandApp kinetic;
 
 void setup() {
     // initialize eBoar
-    eBoard.init();
+    // eBoard.init();
     
-    // add running states/applications
-    eBoard.addApp(&boot);
-    eBoard.addApp(&noop);
-    eBoard.addApp(&otaupdate);
-    eBoard.addApp(&otaweb);
-    eBoard.addApp(&reboot);
-    eBoard.addApp(&emg);
-    eBoard.addApp(&pressure);
-    eBoard.addApp(&kinetic);
+    // // add running states/applications
+    // eBoard.addApp(&boot);
+    // eBoard.addApp(&noop);
+    // eBoard.addApp(&otaupdate);
+    // eBoard.addApp(&otaweb);
+    // eBoard.addApp(&reboot);
+    // eBoard.addApp(&emg);
+    // eBoard.addApp(&pressure);
+    // eBoard.addApp(&kinetic);
 
     // activate default state: bootloader
-    eBoard.setApp(APP_BOOT);
+    ENABLEIT_BOOT();
 }
 
 void loop() {
     // main loop
-   eBoard.loop();
+   ENABLEIT_LOOP();
 }

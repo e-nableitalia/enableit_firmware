@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Console.h>
 #include <WiFi.h>
+#include <BoardAppRegistrar.h>
 #include <HttpsOTAUpdate.h>
 #include "OTAUpdateApp.h"
 #include <Config.h>
@@ -10,6 +11,9 @@ static const char *server_certificate = "";
 static HttpsOTAStatus_t otastatus;
 
 static bool otainit = false;
+
+OTAUpdateApp otaUpdateApp;
+REGISTER_BOARD_APP(otaUpdateApp);
 
 void HttpEvent(HttpEvent_t *event)
 {

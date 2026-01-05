@@ -1,4 +1,5 @@
 #include <BioTelemetry.h>
+#include <BoardAppRegistrar.h>
 #include "EMGApp.h"
 #include <WiFiUdp.h>
 
@@ -51,6 +52,9 @@ int ts = 0;
 int produced = 0;
 
 bool runcommand = true;
+
+EMGApp emgApp;
+REGISTER_BOARD_APP(emgApp);
 
 void EMGApp::enter() {
     DBG("enter EMGApp");

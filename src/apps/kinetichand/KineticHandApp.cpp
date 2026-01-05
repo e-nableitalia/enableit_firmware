@@ -1,7 +1,9 @@
 #include <Arduino.h>
 #include <Console.h>
 #include <WiFi.h>
-#include <M5AtomS3.h>
+#include <Board.h>
+#include <BoardAppRegistrar.h>
+#include <Display.h>
 #include <Config.h>
 #include "KineticHandApp.h"
 #include "HandState.h"
@@ -14,13 +16,14 @@ int servo_angle = 0;
 // hand mode
 int mode = MODE_PROGRESSIVE;
 
+KineticHandApp kineticHandApp;
+REGISTER_BOARD_APP(kineticHandApp);
+
 void KineticHandApp::enter() {
     DBG("Entering in KineticHand App state");
-#ifdef ARDUINO_M5Stack_ATOMS3
-    m5.Lcd.clear();
-    m5.Lcd.setTextSize(1);  // Set text size
-    m5.Lcd.setTextColor(TFT_WHITE);  // Set text color to white
-#endif
+    display.clear();
+    display.setTextSize(1);  // Set text size
+    display.setTextColor(Display::Color::WHITE);  // Set text color to white
     handInit();
 }
 void KineticHandApp::leave() {
@@ -40,19 +43,19 @@ void KineticHandApp::process() {
 //        delay(50);  // Delay to prevent rapid multiple clicks
 //    }
 
-#ifdef ARDUINO_M5Stack_ATOMS3
+#ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
     // Clear the screen and display pressure bar and battery voltage
-    m5.Lcd.setTextColor(BLUE);
-    //m5.Lcd.setRotation(3);
-    m5.Lcd.setTextSize(2);
-    m5.Lcd.fillScreen(TFT_BLACK);
-    m5.Lcd.fillRect(10, 40, barLength, 10, TFT_GREEN);  // Draw the pressure bar
+    display.setTextColor(Display::Color::BLUE);
+    //display.setRotation(3);
+    display.setTextSize(2);
+    display.fillScreen(Display::Color::BLACK);
+    display.fillRect(10, 40, barLength, 10, Display::Color::GREEN);  // Draw the pressure bar
  
-    m5.Lcd.setCursor(0,10);
-    m5.Lcd.print("Pressure: ");
-    m5.Lcd.println(pressureValue);
-    m5.Lcd.print("\nServo: ");
-    m5.Lcd.println(servo_angle);
+    display.setCursor(0,10);
+    display.print("Pressure: ");
+    display.println(pressureValue);
+    display.print("\nServo: ");
+    display.println(servo_angle);
 #endif
 
     DBG("Pressure %d, Servo %d", pressureValue, servo_angle);

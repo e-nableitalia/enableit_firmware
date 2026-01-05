@@ -4,6 +4,8 @@
 #include <Config.h>
 #include <Console.h>
 
+#include <boards/M5AtomS3.h>
+
 std::recursive_mutex state_mtx;
 
 #if !defined(NO_GLOBAL_INSTANCES)
@@ -12,6 +14,7 @@ BoardManager eBoard;
 
 BoardManager::BoardManager() {
     currentApp = nullptr;
+    init();
 }
 
 void BoardManager::init() {
@@ -111,4 +114,12 @@ BoardApp *BoardManager::getCurrentApp() {
 
 BoardApp **BoardManager::getApps() {
     return apps;
+}
+
+Board &BoardManager::getBoard() {
+    return board;
+}
+
+BoardManager &BoardManager::instance() {
+    return eBoard;
 }

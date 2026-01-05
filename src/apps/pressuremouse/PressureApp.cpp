@@ -2,11 +2,12 @@
 #include <Console.h>
 #include <WiFi.h>
 #include <BleMouse.h>
-#include <M5AtomS3.h>
+#include <Display.h>
+#include <BoardAppRegistrar.h>
 #include <Config.h>
 #include "PressureApp.h"
 
-#ifdef ARDUINO_M5Stack_ATOMS3
+#ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
 #define PRESSURE_PIN    G5
 #else
 #define PRESSURE_PIN    GPIO_NUM_8
@@ -18,13 +19,14 @@
 BleMouse bleMouse;
 const int pressureThreshold = 1000;  // Adjust this threshold according to your sensor
 
+PressureApp pressureApp;
+REGISTER_BOARD_APP(pressureApp);
+
 void PressureApp::enter() {
     DBG("Entering in Pressure App state");
-#ifdef ARDUINO_M5Stack_ATOMS3
-    m5.Lcd.clear();
-    m5.Lcd.setTextSize(1);  // Set text size
-    m5.Lcd.setTextColor(TFT_WHITE);  // Set text color to white
-#endif
+    display.clear();
+    display.setTextSize(1);  // Set text size
+    display.setTextColor(Display::Color::WHITE);  // Set text color to white
 //    bleMouse.begin();
     pinMode(PRESSURE_PIN, INPUT);
 }
@@ -43,18 +45,16 @@ void PressureApp::process() {
 //        delay(50);  // Delay to prevent rapid multiple clicks
 //    }
 
-#ifdef ARDUINO_M5Stack_ATOMS3
     // Clear the screen and display pressure bar and battery voltage
-    m5.Lcd.setTextColor(BLUE);
-    //m5.Lcd.setRotation(3);
-    m5.Lcd.setTextSize(2);
-    m5.Lcd.fillScreen(TFT_BLACK);
-    m5.Lcd.fillRect(10, 40, barLength, 10, TFT_GREEN);  // Draw the pressure bar
+    display.setTextColor(Display::Color::BLUE);
+    //display.setRotation(3);
+    display.setTextSize(2);
+    display.fillScreen(Display::Color::BLACK);
+    display.fillRect(10, 40, barLength, 10, Display::Color::GREEN);  // Draw the pressure bar
  
-    m5.Lcd.setCursor(0,10);
-    m5.Lcd.print("Pressure: ");
-    m5.Lcd.println(pressureValue);
-#endif
+    display.setCursor(0,10);
+    display.print("Pressure: ");
+    display.println(pressureValue);
     DBG("Pressure %d", pressureValue);
     
     delay(50);  // Delay for stability

@@ -1,6 +1,6 @@
-#include <M5AtomS3.h>
+#include <boards/M5AtomS3.h>
 
-#ifdef ARDUINO_M5Stack_ATOMS3
+#ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
 
 M5AtomS3::M5AtomS3() {
 }
@@ -16,7 +16,8 @@ void M5AtomS3::begin(bool LCDEnable) {
     }
 }
 
+static M5AtomS3 _board;
 
-M5AtomS3 AtomS3;
+Board& board = _board;
 
 #endif

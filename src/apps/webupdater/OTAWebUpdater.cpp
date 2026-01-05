@@ -7,6 +7,8 @@
 #include <FS.h>
 #include <SPIFFS.h>
 #include <Update.h>
+
+#include <BoardAppRegistrar.h>
 #include <Config.h>
 
 #include "OTAWebUpdaterApp.h"
@@ -232,17 +234,8 @@ String processor(const String& var)
   return String();
 }
 
-/*
- * Login page
- */
-
-
-
-/*
- * Server Index Page
- */
-
-
+OTAWebUpdater otaWebUpdater;
+REGISTER_BOARD_APP(otaWebUpdater);
 
 void OTAWebUpdater::enter(void) {
     LOG("Activating OTA Web Update");
