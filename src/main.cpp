@@ -6,16 +6,14 @@
 // Author: A.Navatta / e-Nable Italia
 
 #include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WebServer.h>
-#include <ESPmDNS.h>
-#include <Update.h>
-#include <Preferences.h>
+// #include <WiFi.h>
+// #include <WiFiClient.h>
+// #include <WebServer.h>
+// #include <ESPmDNS.h>
+// #include <Update.h>
+// #include <Preferences.h>
 
 #include <BoardManager.h>
-#include <NoopApp.h>
-#include <RebootApp.h>
 
 // #include "apps/bootloader/BootLoaderApp.h"
 // #include "apps/otaupdater/OtaUpdateApp.h"

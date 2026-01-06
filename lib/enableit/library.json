@@ -1,5 +1,5 @@
 {
-    "name": "enableit",
+    "name": "enableit-platform",
     "version": "1.0.0",
     "description": "A library supporting bionic and electronic controlled enable devices on ESP32 platforms",
     "keywords": "enableit, platform, esp32",
@@ -23,12 +23,7 @@
       "bblanchon/ArduinoJson": "^6.20.0",
       "thingsboard/ThingsBoard": "^0.10.2",
       "lennarthennigs/ESP Telnet": "^2.1.2",
-      "esphome/ESPAsyncWebServer-esphome": "^3.0.0",
-      "jchristensen/JC_Button": "^2.1.2",
-      "m5stack/M5Unified": "^0.1.6",
-      "m5stack/M5GFX": "^0.1.6",
-      "t-vk/ESP32 BLE Mouse": "^0.3.1",
-      "ESP32Servo": ""
+      "jchristensen/JC_Button": "^2.1.2"
     },
     "frameworks": ["arduino"],
     "platforms": ["espressif32"]

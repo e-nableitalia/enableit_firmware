@@ -4,12 +4,16 @@
 #include <Config.h>
 #include <Console.h>
 
-#include <boards/M5AtomS3.h>
+#include <NoopApp.h>
+#include <RebootApp.h>
 
 std::recursive_mutex state_mtx;
 
 #if !defined(NO_GLOBAL_INSTANCES)
 BoardManager eBoard;
+
+NoopApp       noop;
+RebootState   reboot;
 #endif
 
 BoardManager::BoardManager() {
@@ -25,6 +29,10 @@ void BoardManager::init() {
 
     for (int i = 0; i < MAX_APPS; i++)
         apps[i] = nullptr;
+
+    // add default apps
+    addApp(&noop);
+    addApp(&reboot);
     
     DBG("Init done");
 }
