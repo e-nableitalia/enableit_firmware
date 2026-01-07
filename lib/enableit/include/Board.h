@@ -2,10 +2,15 @@
 
 #include <Display.h>
 
+class WifiHal;
+
 // Base class for a board
 class Board {
 public:
     virtual ~Board() = default;
+
+    // HAL aggregate
+    virtual WifiHal& wifi() = 0;
 
     // Initialize the board, optionally enabling the LCD
     virtual void begin(bool lcdEnabled = true) = 0;

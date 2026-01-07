@@ -4,7 +4,7 @@
 #include "BtServer.h"
 #include "BleCharacteristicHandler.h"
 #include <algorithm>
-#include <BleConsoleTransport.h>
+#include "BleUuids.h"
 
 // -------------------- BLE TX queue (notify from a safe task) --------------------
 
@@ -51,12 +51,13 @@ BtServer::BtServer()
     server_ = BLEDevice::createServer();
     server_->setCallbacks(new ServerCallback());
 
-    service_ = server_->createService(SERVICE_UUID);
+    // Use BleUuids::Console::SERVICE for the service UUID
+    service_ = server_->createService(BleUuids::Console::SERVICE);
 
     service_->start();
 
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
-    pAdvertising->addServiceUUID(SERVICE_UUID);
+    pAdvertising->addServiceUUID(BleUuids::Console::SERVICE);
     pAdvertising->setScanResponse(true);
     pAdvertising->setMinPreferred(0x06);
     pAdvertising->setMinPreferred(0x12);
@@ -112,3 +113,5 @@ bool BtServer::notify(const char* uuid, const uint8_t* data, size_t len) {
     (void)xQueueSend(bleTxQueue, &msg, 0);
     return true;
 }
+
+BtServer btserver;

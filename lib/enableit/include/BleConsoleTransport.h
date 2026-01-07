@@ -5,6 +5,8 @@
 #include <BtServer.h>
 #include <BleCharacteristicHandler.h>
 
+// Usage: pass BleUuids::Console::RX and BleUuids::Console::TX for UUIDs
+
 class BleConsoleTransport : public ConsoleTransport, public BleCharacteristicHandler {
 public:
     BleConsoleTransport(BtServer& btServer,

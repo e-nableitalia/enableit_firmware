@@ -1,11 +1,9 @@
 #include "BootLoader.h"
-#include <Insights.h>
 #include <Esp.h>
-#include <WiFi.h>
-#include <ESPmDNS.h>
 #include <SPIFFS.h>
 #include <Board.h>
 #include <Config.h>
+#include <RuntimeManager.h>
 
 #define CMD_HELP    "* help - show this help"
 #define CMD_INFO    "* info - show active configuration"
@@ -23,33 +21,14 @@
 #define CMD_RUN     "* run <app> - execute application <app>"
 #define CMD_LIST    "* list - list applications"
 
-// MQTT port used to communicate with the server, 1883 is the default unencrypted MQTT port.
-constexpr uint16_t THINGSBOARD_PORT = 1883U;
-
-// Maximum size packets will ever be sent or received by the underlying MQTT client,
-// if the size is to small messages might not be sent or received messages will be discarded
-constexpr uint32_t MAX_MESSAGE_SIZE = 256U;
-
-// Initialize underlying client, used to establish a connection
-WiFiClient wifiClient;
-// Initialize ThingsBoard instance with the maximum needed buffer size
-ThingsBoard tb(wifiClient, MAX_MESSAGE_SIZE);
-
 BootLoader::BootLoader() {
-    // noop
 }
 
 void BootLoader::init(BoardApp *s) {
     DBG("Initializing BootLoader");
     state = s;
     bootState = BootState::WAIT_USERINPUT;
-
     devMode = false;
-
-//    pinMode(BUTTON_PIN, INPUT);
-//    pinMode(LED_PIN, OUTPUT);
-    DBG("I/O pin configured");
-
     DBG(""); DBG("");
     OUT("eNable.it - Bionic Platform");
 
@@ -61,7 +40,7 @@ void BootLoader::init(BoardApp *s) {
     Console.println("done");
 
     OUT("Firmware Rev %s", FWREV);
-    
+
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
  
@@ -121,52 +100,34 @@ void BootLoader::init(BoardApp *s) {
         OUT("SPIFFS partition configured");
     }
 
-    wifion = false;
+    // Prepare BootConfig for runtime
+    BootConfig bootCfg;
+    bootCfg.wifiSsid = config.wifiSsid;
+    bootCfg.wifiPassword = config.wifiPassword;
+    bootCfg.apMode = config.apMode;
+    bootCfg.insights = config.insights;
+    bootCfg.insightsKey = config.insightsKey;
+    bootCfg.deviceid = config.deviceid;
+    bootCfg.thingsboard = config.thingsboard;
+    bootCfg.devicetoken = config.devicetoken;
+    bootCfg.mdnsHostname = "esp32"; // or config.mdnsHostname if available
 
     if (config.wifi) {
-        doEnableWifi();
+        runtime.enableWifi(bootCfg);
 
-        if (wifion) {
-            if (config.deviceid != "") {
-                DBG("Enabling thingsboard");
-                if (!tb.connected()) {
-                    //subscribed = false;
-                    // Connect to the ThingsBoard
-                    DBG("Connecting to ThingsBoard[%s] with token [%s]", config.thingsboard.c_str(),config.devicetoken.c_str());
-                    if (!tb.connect(config.thingsboard.c_str(), config.devicetoken.c_str(), THINGSBOARD_PORT, config.deviceid.c_str())) {
-                        ERR("Failed to connect");
-                        return;
-                    }
-                    // Sending a MAC address as an attribute
-                    tb.sendAttributeString("macAddress", WiFi.macAddress().c_str());
-                    tb.sendAttributeInt("rssi", WiFi.RSSI());
-                    tb.sendAttributeString("bssid", WiFi.BSSIDstr().c_str());
-                    tb.sendAttributeString("localIp", WiFi.localIP().toString().c_str());
-                    tb.sendAttributeString("ssid", WiFi.SSID().c_str());
-                    tb.sendAttributeInt("channel", WiFi.channel());
-                }
+#if THINGSBOARD_SUPPORT
+        if (runtime.wifiOn() && !bootCfg.deviceid.isEmpty()) {
+            DBG("Enabling thingsboard");
+            if (!runtime.enableThingsBoard(bootCfg)) {
+                ERR("Failed to connect to ThingsBoard");
+                return;
             }
+        }
+#endif
 
-            if (config.telnet) {
-                DBG("Enabling telnet server");
-                TelnetConsoleTransport::instance()->enable(true);
-            }
-
-            if (config.insights) {
-                if(Insights.begin(config.insightsKey.c_str())){
-                    DBG("=========================================");
-                    DBG("ESP Insights enabled Node ID %s", Insights.nodeID());
-                    DBG("=========================================");
-                } else {
-                    DBG("=========================================");
-                    DBG("ESP Insights enable failed");
-                    DBG("=========================================");
-                }
-            } else {
-                ERR("ESP Insights disabled, requires WiFi active to enable it");
-            }
-        } else {
-            DBG("Wifi failed to start");
+        if (config.telnet) {
+            DBG("Enabling telnet server");
+            TelnetConsoleTransport::instance()->enable(true);
         }
     } else {
         DBG("Wifi disabled");
@@ -174,7 +135,7 @@ void BootLoader::init(BoardApp *s) {
 
     display.setCursor(0, 0);
     display.print("IP: ");
-    display.print(WiFi.localIP().toString().c_str());
+    display.print(board.wifi().getIpAddress());
 
     start = millis();
     DBG("Boot timeout[%d], start time[%d]", config.bootTimeout, start);
@@ -218,94 +179,6 @@ void BootLoader::interactiveMode() {
     parser.display();
     bootState = BootState::WAIT_COMMAND;
 }
-
-void BootLoader::doEnableWifi() {
-    if (wifion) {
-        ERR("WiFi already active");
-        return;
-    }
-
-    DBG("Activating WIFI");
-    if (config.apMode) {
-#ifndef ARDUINO_BPI_LEAF_S3
-        WiFi.mode(WIFI_AP);
-#else
-#pragma message "WIFI_AP disabled for ARDUINO_BPI_LEAF_S3"
-#endif
-        OUTNOLF("Activating WiFi AP SSID[%s]", config.wifiSsid.c_str());
- #ifndef  ARDUINO_BPI_LEAF_S3
-        WiFi.softAP((char *)config.wifiSsid.c_str(), config.wifiPassword.c_str());
-#else
-#pragma message "WiFi AP Mode disabled for ARDUINO_BPI_LEAF_S3"
-#endif
-    } else {
-#ifndef ARDUINO_BPI_LEAF_S3
-        WiFi.mode(WIFI_STA);
-#else
-#pragma message "WIFI_STA disabled for ARDUINO_BPI_LEAF_S3"
-#endif
-        OUTNOLF("Wifi init, connecting to[%s]", config.wifiSsid.c_str());
-        const char *ssid = config.wifiSsid.c_str();
-        const char *pwd = config.wifiPassword.c_str();
-        WiFi.begin(ssid, pwd);
-    }
-
-    int count = 0;
-
-    while ((WiFi.status() != WL_CONNECTED)&& (count < MAX_WIFI_CONNECT_ATTEMPTS)) {
-        delay(WIFI_CHECK_DELAY);
-        OUTNOLF(".");
-        count++;
-    }
-    LOG("");
-    if ((WiFi.status() == WL_CONNECTED)) {
-        LOG("WiFi connected");
-
-        LOG("IP address: [%s]", WiFi.localIP().toString().c_str());
-
-        if (!MDNS.begin("esp32")) { 
-            ("Error setting up MDNS responder!");
-        }
-        LOG("mDNS responder started");
-
-        wifion = true;
-    } else {
-        ERR("Wifi init failed");
-        wifion = false;
-
-        OUT("Scanning for known wifi");
-        int n = WiFi.scanNetworks();
-        OUT("Found %d networks",n);
-        for (int i = 0; i < n;i++) {
-            OUT("SSID[%s] RSSI[%d], Encryption[%s]", WiFi.SSID(i).c_str(), WiFi.RSSI(i), (WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
-        }
-    }
-}
-
-void BootLoader::doDisableWifi() {
-    if (!wifion) {
-        ERR("WiFi already disactivated");
-        return;
-    }
-
-    LOG("Deativating WIFI");
-
-    if (config.insights) {
-        DBG("Stopping insights");
-        Insights.end();
-    }
-
-    WiFi.disconnect();
-#if defined(ARDUINO_BPI_LEAF_S3)
-    DBG("WiFi disable disabled");
-#else
-    WiFi.mode(WIFI_OFF);
-#endif
-
-    OUT("Wifi disabled");
-
-    wifion = false;
-}    
 
 void BootLoader::cmdHelp() {
     OUT("** Help **");
@@ -396,10 +269,21 @@ void BootLoader::cmdWifion() {
     String enabled = parser.getString(1);
 
     enabled.toLowerCase();
+    BootConfig bootCfg;
+    bootCfg.wifiSsid = config.wifiSsid;
+    bootCfg.wifiPassword = config.wifiPassword;
+    bootCfg.apMode = config.apMode;
+    bootCfg.insights = config.insights;
+    bootCfg.insightsKey = config.insightsKey;
+    bootCfg.deviceid = config.deviceid;
+    bootCfg.thingsboard = config.thingsboard;
+    bootCfg.devicetoken = config.devicetoken;
+    bootCfg.mdnsHostname = "esp32"; // or config.mdnsHostname if available
+
     if (!enabled.compareTo("true")) {
-        doEnableWifi();
+        runtime.enableWifi(bootCfg);
     } else {
-        doDisableWifi();
+        runtime.disableWifi(bootCfg);
     }
 }
 

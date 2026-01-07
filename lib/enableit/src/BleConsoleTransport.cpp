@@ -1,8 +1,5 @@
 #include <BleConsoleTransport.h>
-
-// Example UUIDs for the BLE console characteristics
-constexpr char CONSOLE_RX_UUID[] = "e3b8c7e0-1c7e-4e8d-9e4e-1a2b3c4d5e6f";
-constexpr char CONSOLE_TX_UUID[] = "e3b8c7e1-1c7e-4e8d-9e4e-1a2b3c4d5e6f";
+#include <BleUuids.h>
 
 // BleConsoleTransport implementation
 BleConsoleTransport::BleConsoleTransport(
@@ -12,20 +9,17 @@ BleConsoleTransport::BleConsoleTransport(
 )
     : btServer_(btServer), rxUuid_(rxCharUUID), txUuid_(txCharUUID)
 {
-    // Register RX characteristic with this handler
     btServer_.registerCharacteristic(
-        rxCharUUID.c_str(),
-        BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR,
+        rxUuid_.c_str(),
+        /*PROPERTY_WRITE*/ 0x08 | /*PROPERTY_WRITE_NR*/ 0x04,
         this
     );
-    // Register TX characteristic for output (no handler needed)
     btServer_.registerCharacteristic(
-        txCharUUID.c_str(),
-        BLECharacteristic::PROPERTY_NOTIFY,
+        txUuid_.c_str(),
+        /*PROPERTY_NOTIFY*/ 0x10,
         nullptr
     );
 
-    // Register in Console with priority
     Console.registerTransport(this, ConsolePriority::PRIORITY_BLE);
 }
 
@@ -86,7 +80,12 @@ void BleConsoleTransport::onUnsubscribe() {
     notifyDisconnect();
 }
 
-// Example registration (place in your main setup/init, not inside the class file):
+// Example usage in your main setup/init (not inside this file):
+// #include <BleUuids.h>
 // BtServer btServer;
-// static BleConsoleTransport bleConsole(btServer, CONSOLE_RX_UUID, CONSOLE_TX_UUID);
+// static BleConsoleTransport bleConsole(
+//     btServer,
+//     BleUuids::Console::RX,
+//     BleUuids::Console::TX
+// );
 // Console.registerTransport(&bleConsole, PRIORITY_BLE);

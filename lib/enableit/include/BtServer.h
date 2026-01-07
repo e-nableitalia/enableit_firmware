@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <string>
 #include "BleCharacteristicHandler.h"
+#include "BleUuids.h"
 
 #define SERVICE_UUID        "89d60870-9908-4472-8f8c-e5b3e6573cd1"
 
@@ -52,3 +53,5 @@ private:
     class CharacteristicCallback;
     class ServerCallback;
 };
+
+extern BtServer btserver;

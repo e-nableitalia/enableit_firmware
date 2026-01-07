@@ -5,17 +5,13 @@
 XiaoESP32S3::XiaoESP32S3() {}
 XiaoESP32S3::~XiaoESP32S3() {}
 
-void XiaoESP32S3::begin(bool LCDEnable) {
-	if (LCDEnable) {
-		Lcd.begin();
-		Lcd.clear();
-		Lcd.setCursor(1, 2);
-	}
+void XiaoESP32S3::begin(bool lcdEnabled) {
+    // Board-specific init if needed
 }
 
-static MockDisplay _display;
-
-Display& display = _display;
+void XiaoESP32S3::end() {
+    // Board-specific deinit if needed
+}
 
 static XiaoESP32S3 _board;
 Board& board = _board;

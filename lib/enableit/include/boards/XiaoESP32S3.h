@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include <Board.h>
+#include <boards/WifiHalEsp32.h>
 
 class XiaoESP32S3 : public Board {
    public:
@@ -13,8 +14,14 @@ class XiaoESP32S3 : public Board {
     MockDisplay Lcd = MockDisplay();
 
     void begin(bool LCDEnable = true) override;
-    void end() override { /* implementazione vuota o spegnimento hardware */ }
+    void end() override;
     Display& getDisplay() override { return Lcd; }
+
+    // HAL aggregate
+    WifiHal& wifi() override { return wifi_; }
+
+   private:
+    WifiHalEsp32 wifi_;
 };
 
 #endif

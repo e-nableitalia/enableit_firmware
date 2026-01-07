@@ -13,9 +13,9 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
-#include <ThingsBoard.h>
+#include <Board.h>
+#include <Config.h>
+#include <RuntimeManager.h>
 #include <Console.h>
 #include <BoardApp.h>
 
@@ -38,7 +38,7 @@ public:
         WAIT_COMMAND_PRI
     } bootState;
 
-    void init(BoardApp *state);
+    void init(BoardApp *s);
     void fini();
 
     void run();
@@ -61,16 +61,12 @@ private:
     void cmdRun();
     void cmdList();
 
-    void doEnableWifi();
-    void doDisableWifi();
-
     void interactiveMode();
 
     unsigned long start;
     BoardApp *state;
 
     CommandParser<BootLoader> parser;
-    bool wifion;
     bool devMode;
 };
 
