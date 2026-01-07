@@ -114,7 +114,7 @@ void CommandParser<TClass>::parseLine(char *buffer) {
 
 template <class TClass>
 void CommandParser<TClass>::poll() {
-    Console.pool();
+    Console.poll();
 
     if (prompt)
         display();

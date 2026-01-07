@@ -149,7 +149,7 @@ void BootLoader::init(BoardApp *s) {
 
             if (config.telnet) {
                 DBG("Enabling telnet server");
-                Console.enableTelnet(true);
+                TelnetConsoleTransport::instance()->enable(true);
             }
 
             if (config.insights) {
