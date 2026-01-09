@@ -1,16 +1,19 @@
 #pragma once
 
+#include <ConsoleTransport.h>
 #include <Display.h>
 
-class WifiHal;
-
 // Base class for a board
+namespace enableit {
+
+class Wifi;
+
 class Board {
 public:
     virtual ~Board() = default;
 
     // HAL aggregate
-    virtual WifiHal& wifi() = 0;
+    virtual Wifi& wifi() = 0;
 
     // Initialize the board, optionally enabling the LCD
     virtual void begin(bool lcdEnabled = true) = 0;
@@ -20,11 +23,14 @@ public:
 
     // Get a reference to the display
     virtual Display& getDisplay() = 0;
+
+    // Return the default hardware serial port for the board
+    virtual ConsoleTransport& serial() = 0;
 };
 
-// Concrete board must define also the global instance 'eBoardImpl' and the macro 'board'
-// Example: 
 extern Board& board;
+
+} // namespace enableit
 
 
 

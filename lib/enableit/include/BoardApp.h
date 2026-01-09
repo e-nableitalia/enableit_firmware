@@ -3,9 +3,7 @@
 //
 // Author: A.Navatta / e-Nable Italia
 
-#ifndef BOARD_APP_H
-
-#define BOARD_APP_H
+#pragma once
 
 // Max allowed applications
 #define MAX_APPS      16
@@ -21,6 +19,8 @@
 #define STATE_RUNNING   "run"
 #define STATE_REBOOT    "reboot"
 
+namespace enableit {
+
 class BoardApp {
 public:
     virtual void enter() = 0;
@@ -29,6 +29,14 @@ public:
     virtual const char *name() = 0;
     void changeApp(const char *name);
     BoardApp **apps();
+    bool hasApp(const char *state_name);
 };
 
-#endif // BOARD_APP_H
+} // namespace enableit
+
+#define BOARDAPP_INSTANCE(APP_TYPE)                 \
+    static APP_TYPE APP_TYPE##_instance;            \
+    extern "C" ::enableit::BoardApp&                \
+    get_##APP_TYPE##_app() {                        \
+        return APP_TYPE##_instance;                 \
+    }

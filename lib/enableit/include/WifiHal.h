@@ -2,14 +2,16 @@
 
 #include <Arduino.h>
 
+namespace enableit {
+
 struct WifiConfig {
     const char* ssid;
     const char* password;
 };
 
-class WifiHal {
+class Wifi {
 public:
-    virtual ~WifiHal() = default;
+    virtual ~Wifi() = default;
 
     // Primitive operative, board-dependent
     virtual bool startAp(const WifiConfig& cfg) = 0;
@@ -17,3 +19,5 @@ public:
     virtual void stop() = 0;
     virtual String getIpAddress() = 0;
 };
+
+} // namespace enableit

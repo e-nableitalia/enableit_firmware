@@ -1,7 +1,10 @@
 #include "RuntimeManager.h"
 #include <WiFi.h>
+#include <WifiHal.h>
 #include <ESPmDNS.h>
+#if defined(INSIGHTS_SUPPORT)
 #include <Insights.h>
+#endif
 
 #define WIFI_CHECK_DELAY            500 // 500ms delay
 #define MAX_WIFI_CONNECT_ATTEMPTS   20
@@ -10,8 +13,10 @@
 #include <ThingsBoard.h>
 #endif
 
-RuntimeManager::RuntimeManager(Board& board, BtServer& btServer)
-    : board_(board), btServer_(btServer)
+namespace enableit {
+
+RuntimeManager::RuntimeManager(Board& board)
+    : board_(board)
 #if THINGSBOARD_SUPPORT
     , tb_(wifiClient_, MAX_MESSAGE_SIZE)
 #endif
@@ -73,6 +78,7 @@ bool RuntimeManager::enableWifi(const BootConfig& config) {
         }
     }
 
+#if defined(INSIGHTS_SUPPORT)
     // Insights
     if (config.insights && !insightsOn_) {
         if (Insights.begin(config.insightsKey.c_str())) {
@@ -88,6 +94,7 @@ bool RuntimeManager::enableWifi(const BootConfig& config) {
     } else if (!config.insights) {
         log_w("ESP Insights disabled, requires WiFi active to enable it");
     }
+#endif
 
     wifiOn_ = true;
     return true;
@@ -101,11 +108,13 @@ void RuntimeManager::disableWifi(const BootConfig& config) {
 
     log_i("Deactivating WIFI");
 
+#if defined(INSIGHTS_SUPPORT)
     if (insightsOn_) {
         log_i("Stopping insights");
         Insights.end();
         insightsOn_ = false;
     }
+#endif
 
     // No explicit MDNS stop in ESP-IDF/Arduino, but reset flag
     mdnsOn_ = false;
@@ -119,11 +128,14 @@ void RuntimeManager::disableWifi(const BootConfig& config) {
 bool RuntimeManager::enableBle() {
     if (bleOn_) return true;
     // BtServer is started in constructor; if you need to restart, add log_iic here
+    btServer_.init();
     bleOn_ = true;
     return true;
 }
 
 void RuntimeManager::disableBle() {
+    if (!bleOn_) return;
+    btServer_.end();
     // If BtServer supports stopping, call it here
     bleOn_ = false;
 }
@@ -144,7 +156,7 @@ void RuntimeManager::stopAll(const BootConfig& config) {
     disableWifi(config);
 }
 
-#if THINGSBOARD_SUPPORT
+#if defined(THINGSBOARD_SUPPORT)
 bool RuntimeManager::enableThingsBoard(const BootConfig& config) {
     if (thingsBoardOn_) return true;
     if (!wifiOn_) {
@@ -183,8 +195,9 @@ void RuntimeManager::disableThingsBoard() {
 bool RuntimeManager::thingsBoardConnected() const {
     return const_cast<decltype(tb_)&>(tb_).connected();
 }
+#endif
 
 // Setup RuntimeManager
-RuntimeManager runtime(board, btserver);
-   
-#endif
+RuntimeManager runtime(board);
+
+} // namespace enableit

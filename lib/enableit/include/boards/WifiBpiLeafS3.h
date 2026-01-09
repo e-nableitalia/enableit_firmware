@@ -1,9 +1,11 @@
 #pragma once
 
-#include <WifiHal.h>
-#include <WiFi.h>
+#include <Wifi.h>
+#include <WiFiHal.h>
 
-class WifiHalBpiLeafS3 : public WifiHal {
+namespace enableit {
+
+class WifiBpiLeafS3 : public Wifi {
 public:
     bool startAp(const WifiConfig& cfg) override;
     bool startSta(const WifiConfig& cfg) override;
@@ -12,3 +14,5 @@ public:
         return WiFi.localIP().toString();
     }
 };
+
+} // namespace enableit

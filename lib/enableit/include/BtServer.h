@@ -13,11 +13,17 @@
 
 #define SERVICE_UUID        "89d60870-9908-4472-8f8c-e5b3e6573cd1"
 
+namespace enableit {
+
 class BtServer {
 public:
     static constexpr size_t BLE_TX_MAX = 180;
 
     BtServer();
+
+    void init();
+
+    void end();
 
     // Register a BLE characteristic with handler
     bool registerCharacteristic(
@@ -55,3 +61,5 @@ private:
 };
 
 extern BtServer btserver;
+
+} // namespace enableit

@@ -4,12 +4,13 @@
 // Author: A.Navatta / e-Nable Italia
 
 #ifndef CONFIG_H
-
 #define CONFIG_H
 
 #include <Arduino.h>
 
 #define CONFIG_VERSION  "1.0";
+
+namespace enableit {
 
 // parameters supported
 // timeout      int, boot timeout in seconds, default: 3 seconds
@@ -64,8 +65,11 @@ private:
     int size;
  };
 
+
 #if !defined(NO_GLOBAL_INSTANCES)
 extern Config config;
 #endif
+
+} // namespace enableit
 
 #endif // CONFIG_H

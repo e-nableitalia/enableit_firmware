@@ -1,127 +1,38 @@
 #include <Arduino.h>
 #include <USB.h>
 #include <ESPTelnetStream.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLE2902.h>
 
 #include <stdarg.h>
 #include <stdio.h>
 
 #include <Console.h>
+#include <Board.h>
 
-#define USE_USB_SERIAL
+using namespace enableit;
 
-#if ARDUINO_USB_CDC_ON_BOOT
-#ifdef USE_USB_SERIAL
-#define HWSerial Serial0
-#define USBSerial Serial
-#define DBGSerial Serial
-#else
-#define HWSerial Serial0
-#define USBSerial Serial
-#define DBGSerial Serial0
-#endif
-#else
-// Hardware serial
-#define HWSerial Serial
-#endif
-
-#if !defined(NO_GLOBAL_INSTANCES)
-ConsoleWrapper Console;
-#endif
+namespace enableit {
 
 // console output format buffer
 char format_buffer[FORMAT_BUFFERSIZE];
 
-#ifdef USE_USB_SERIAL
-static void usbEventCallback(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
-{
-  if (event_base == ARDUINO_USB_EVENTS)
-  {
-    arduino_usb_event_data_t *data = (arduino_usb_event_data_t *)event_data;
-    switch (event_id)
-    {
-    case ARDUINO_USB_STARTED_EVENT:
-      DBG("USB PLUGGED");
-      break;
-    case ARDUINO_USB_STOPPED_EVENT:
-      DBG("USB UNPLUGGED");
-      break;
-    case ARDUINO_USB_SUSPEND_EVENT:
-      DBG("USB SUSPENDED: remote_wakeup_en: %u\n", data->suspend.remote_wakeup_en);
-      break;
-    case ARDUINO_USB_RESUME_EVENT:
-      DBG("USB RESUMED");
-      break;
-
-    default:
-      break;
-    }
-  }
-  else if (event_base == ARDUINO_USB_CDC_EVENTS)
-  {
-    arduino_usb_cdc_event_data_t *data = (arduino_usb_cdc_event_data_t *)event_data;
-    switch (event_id)
-    {
-    case ARDUINO_USB_CDC_CONNECTED_EVENT:
-      DBG("CDC CONNECTED");
-      break;
-    case ARDUINO_USB_CDC_DISCONNECTED_EVENT:
-      DBG("CDC DISCONNECTED");
-      break;
-    case ARDUINO_USB_CDC_LINE_STATE_EVENT:
-      DBG("CDC LINE STATE: dtr: %u, rts: %u\n", data->line_state.dtr, data->line_state.rts);
-      break;
-    case ARDUINO_USB_CDC_LINE_CODING_EVENT:
-      DBG("CDC LINE CODING: bit_rate: %u, data_bits: %u, stop_bits: %u, parity: %u\n", data->line_coding.bit_rate, data->line_coding.data_bits, data->line_coding.stop_bits, data->line_coding.parity);
-      break;
-    case ARDUINO_USB_CDC_RX_EVENT:
-      /*        DBG("CDC RX [%u]:", data->rx.len);
-              {
-                  uint8_t buf[data->rx.len];
-                  size_t len = USBSerial.read(buf, data->rx.len);
-                  HWSerial.write(buf, len);
-              }
-              HWSerial.println();
-      */
-      break;
-    case ARDUINO_USB_CDC_RX_OVERFLOW_EVENT:
-      DBG("CDC RX Overflow of %d bytes", data->rx_overflow.dropped_bytes);
-      break;
-
-    default:
-      break;
-    }
-  }
-}
-#endif
-
 void ConsoleWrapper::init(int baudRate, bool d, bool t)
 {
+  log_d("ConsoleWrapper Init: baudRate=%d, debug=%s, telnet=%s", baudRate, d ? "true" : "false", t ? "true" : "false");
   debug_enabled = d;
 
-  // Register Serial transport
-  static SerialConsoleTransport serialTransport(HWSerial);
-  registerTransport(&serialTransport, PRIORITY_SERIAL);
-  HWSerial.begin(baudRate);
-  HWSerial.setDebugOutput(debug_enabled);
-
-#ifdef USE_USB_SERIAL
-  if (debug_enabled)
-  {
-    USB.onEvent(usbEventCallback);
-    USBSerial.onEvent(usbEventCallback);
-  }
-  USB.begin();
-  USBSerial.begin(baudRate);
-#endif
-
+  log_d("Serial begin at %d baud", baudRate);
+  board.serial().begin(baudRate);
+  log_d("Registering Serial transport");
+  // Register Serial transport using board's default serial port
+  registerTransport(&board.serial(), PRIORITY_SERIAL);
+  log_d("Notifying Serial transport connected");
+  // force notify connect for serial to be active by default
+  board.serial().notifyConnect();
+  
   if (t)
   {
     static TelnetConsoleTransport telnetTransport;
     registerTransport(&telnetTransport, PRIORITY_TELNET);
-    telnetTransport.attach(this);
     telnetTransport.enable(true);
   }
 
@@ -148,7 +59,7 @@ size_t ConsoleWrapper::write(uint8_t c)
     return activeTransport->write(c);
   }
   // Fallback to Serial
-  return HWSerial.write(c);
+  return board.serial().write(c);
 }
 
 int ConsoleWrapper::available()
@@ -158,7 +69,7 @@ int ConsoleWrapper::available()
   {
     return activeTransport->available();
   }
-  return HWSerial.available();
+  return board.serial().available();
 }
 
 int ConsoleWrapper::read()
@@ -168,7 +79,7 @@ int ConsoleWrapper::read()
   {
     return activeTransport->read();
   }
-  return HWSerial.read();
+  return board.serial().read();
 }
 
 void ConsoleWrapper::echo(uint8_t c)
@@ -187,7 +98,7 @@ int ConsoleWrapper::peek()
   {
     return activeTransport->peek();
   }
-  return HWSerial.peek();
+  return board.serial().peek();
 }
 
 // Serial debug function
@@ -335,6 +246,8 @@ void ConsoleWrapper::registerTransport(ConsoleTransport *transport, ConsolePrior
 {
   if (!transport)
     return;
+
+  log_i("Registering transport with priority %d", priority);
   TransportEntry entry;
   entry.transport = transport;
   entry.priority = priority;
@@ -494,3 +407,7 @@ void TelnetConsoleTransport::onInput(String str)
 {
     // Optionally handle input
 }
+
+ConsoleWrapper Console;
+
+} // namespace enableit

@@ -7,6 +7,8 @@
 
 // Usage: pass BleUuids::Console::RX and BleUuids::Console::TX for UUIDs
 
+namespace enableit {
+
 class BleConsoleTransport : public ConsoleTransport, public BleCharacteristicHandler {
 public:
     BleConsoleTransport(BtServer& btServer,
@@ -44,3 +46,5 @@ private:
     // Helper for buffer push
     void pushRx(const uint8_t* data, size_t len);
 };
+
+} // namespace enableit

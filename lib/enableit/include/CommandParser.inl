@@ -8,6 +8,8 @@
 #include <Console.h>
 #include <CommandParser.h>
 
+using namespace enableit;
+
 template <class TClass>
 CommandParser<TClass>::CommandParser() {
     human = prompt = true;
@@ -95,7 +97,7 @@ bool CommandParser<TClass>::getBool(int pos) {
 
 template <class TClass>
 void CommandParser<TClass>::parseLine(char *buffer) {
-    DBG("Sending command:[%s]",buffer);
+    log_d("Sending command:[%s]",buffer);
     while (*buffer) {
         Console.echo(*buffer);
 
@@ -104,7 +106,7 @@ void CommandParser<TClass>::parseLine(char *buffer) {
         // leave if buffer overflow
         if (row >= BUFFER_MAX) {
             // force command processing
-            ERR("Serial buffer overflow");
+            log_e("Serial buffer overflow");
             display();
             break;
         }
@@ -126,7 +128,7 @@ void CommandParser<TClass>::poll() {
         // check end of line
         if (readchar == '\r') {
             // process line feed
-            Console.println("");
+            log_d("");
             // force command processing
             parse();
             prompt = true;            
@@ -150,7 +152,7 @@ void CommandParser<TClass>::poll() {
             // leave if buffer overflow
             if (row >= BUFFER_MAX) {
                 // force command processing
-                ERR("Serial buffer overflow");
+                log_e("Serial buffer overflow");
                 display();
                 break;
             }

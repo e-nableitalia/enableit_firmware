@@ -4,6 +4,8 @@
 
 #include "qrcode.h"
 
+namespace enableit {
+
 M5Display::M5Display() : m5gfx::M5GFX() {
  
 }
@@ -17,5 +19,7 @@ void M5Display::begin() {
 static M5Display _display;
 
 Display& display = _display;
+
+} // namespace enableit
 
 #endif

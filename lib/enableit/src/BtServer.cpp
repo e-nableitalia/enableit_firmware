@@ -6,6 +6,8 @@
 #include <algorithm>
 #include "BleUuids.h"
 
+namespace enableit {
+
 // -------------------- BLE TX queue (notify from a safe task) --------------------
 
 class BtServer::CharacteristicCallback : public BLECharacteristicCallbacks {
@@ -45,8 +47,10 @@ public:
     }
 };
 
-BtServer::BtServer()
-{
+BtServer::BtServer() {
+}
+
+void BtServer::init() {
     BLEDevice::init("eNableIt board");
     server_ = BLEDevice::createServer();
     server_->setCallbacks(new ServerCallback());
@@ -82,6 +86,48 @@ BtServer::BtServer()
     log_i("eNableIt BLE core ready.");
 }
 
+void BtServer::end() {
+  // Stop advertising
+  if (server_) {
+    server_->getAdvertising()->stop();
+  }
+  BLEDevice::stopAdvertising();
+
+  // Remove all characteristics and clear bindings
+  if (service_) {
+    for (auto& kv : bindings_) {
+      if (kv.second.characteristic) {
+        // BLEService does not provide removeCharacteristic, just delete the object
+        delete kv.second.characteristic;
+        kv.second.characteristic = nullptr;
+      }
+      if (kv.second.handler) {
+        delete kv.second.handler;
+        kv.second.handler = nullptr;
+      }
+    }
+    bindings_.clear();
+    server_->removeService(service_);
+    delete service_;
+    service_ = nullptr;
+  }
+
+  // Delete server
+  if (server_) {
+    delete server_;
+    server_ = nullptr;
+  }
+
+  // Delete BLE TX queue
+  if (bleTxQueue) {
+    vQueueDelete(bleTxQueue);
+    bleTxQueue = nullptr;
+  }
+
+  // Deinit BLE stack
+  BLEDevice::deinit();
+}
+
 bool BtServer::registerCharacteristic(
     const char* uuid,
     uint32_t properties,
@@ -115,3 +161,5 @@ bool BtServer::notify(const char* uuid, const uint8_t* data, size_t len) {
 }
 
 BtServer btserver;
+
+} // namespace enableit

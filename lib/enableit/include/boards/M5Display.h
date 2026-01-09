@@ -7,6 +7,8 @@
 #include <M5GFX.h>
 #include <Display.h>
 
+namespace enableit {
+
 class M5Display : public Display, public m5gfx::M5GFX {
 public:
    M5Display();
@@ -61,6 +63,8 @@ private:
       }
    }
 };
-#endif
 
+} // namespace enableit
+
+#endif
 // End of file M5Display.h

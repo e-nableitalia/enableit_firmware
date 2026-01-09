@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+namespace enableit {
+
 // Display properties structure
 struct DisplayProps
 {
@@ -130,3 +132,5 @@ public:
 };
 
 extern Display& display;
+
+} // namespace enableit

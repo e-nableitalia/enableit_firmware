@@ -4,13 +4,10 @@
 // Author: A.Navatta / e-Nable Italia
 
 #ifndef BOARD_MANAGER_H
-
 #define BOARD_MANAGER_H
 
 #include <Arduino.h>
-
 #include <Console.h>
-
 #include <Board.h>
 #include <BoardApp.h>
 
@@ -20,14 +17,20 @@
 // Enable to add delay to main loop
 //#define LOOP_DELAY      500
 
+namespace enableit {
+
 class BoardManager {
 public:
     BoardManager();
     void init();
+    
     void loop();
 
     bool setApp(const char *state_name);
+
     bool addApp(BoardApp *state);
+    bool addAppNoLock(BoardApp *state);
+    bool hasApp(const char *state_name);
 
     void panic(int code, const char *description);
 
@@ -41,16 +44,44 @@ public:
 private:
     void setApp(BoardApp *state);
 
-    BoardApp *currentApp;
-    BoardApp *apps[MAX_APPS];
+    BoardApp *currentApp = nullptr;
+    BoardApp *apps[MAX_APPS] = {nullptr};
+};
+
+class BoardAppRegistrar {
+public:
+    BoardAppRegistrar(BoardApp &app) {
+        BoardManager::instance().addAppNoLock(&app);
+    }
 };
 
 #if !defined(NO_GLOBAL_INSTANCES)
 extern BoardManager eBoard;
 #endif
 
-#define ENABLEIT_BOOT() eBoard.setApp(APP_BOOT)
+} // namespace enableit
 
-#define ENABLEIT_LOOP() eBoard.loop()
+// Platform management and app registration macros
+
+#define DECLARE_BOARDAPP(APP_TYPE)    \
+    extern "C" ::enableit::BoardApp&                 \
+        get_##APP_TYPE##_app();                      
+
+#define ENABLE_BOARD_APP(APP_TYPE)                   \
+    extern "C" ::enableit::BoardApp&                 \
+        get_##APP_TYPE##_app();                      \
+    static ::enableit::BoardAppRegistrar             \
+        _registrar_##APP_TYPE(get_##APP_TYPE##_app());
+
+#define REGISTER_BOARD_APP(APP_TYPE)    \
+        ::enableit::eBoard.addApp(      \
+            &get_##APP_TYPE##_app());
+    
+#define ENABLEIT_BOOT(APP) do { \
+    enableit::eBoard.init(); \
+    enableit::eBoard.setApp(APP); \
+} while(0)
+
+#define ENABLEIT_LOOP() enableit::eBoard.loop()
 
 #endif // BOARD_MANAGER_H

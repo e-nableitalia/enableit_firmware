@@ -6,6 +6,8 @@
 #include <Board.h>
 #include <WifiHalBpiLeafS3.h>
 
+namespace enableit {
+
 class BpiLeafS3 : public Board {
 public:
     BpiLeafS3();
@@ -16,10 +18,15 @@ public:
     // Add display or other HAL as needed
 
     // HAL aggregate
-    WifiHal& wifi() override { return wifi_; }
+    Wifi& wifi() override { return wifi_; }
+
+    // Return the default hardware serial port
+    HardwareSerial& serial() override { return Serial; }
 
 private:
     WifiHalBpiLeafS3 wifi_;
 };
+
+} // namespace enableit
 
 #endif

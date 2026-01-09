@@ -8,6 +8,8 @@
 #include <base64.h>
 #include <libb64/cdecode.h>
 
+namespace enableit {
+
 const char insights_auth_key[] = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiMTJlZGZkYjMtZTc4OC00MjNiLTljZjEtYjdhODA0Mzk2OWM4IiwiZXhwIjoxOTg4NDk0MjkzLCJpYXQiOjE2NzMxMzQyOTMsImlzcyI6ImUzMjJiNTljLTYzY2MtNGU0MC04ZWEyLTRlNzc2NjU0NWNjYSIsInN1YiI6IjJlZDJiNjU4LTM2MjItNDU5Ni04NzJlLWM2N2RlMDg5Nzc1YyJ9.KY2Tk74vsEqWY18CsescSTIqDh9WPwWnCIdVFYfYiGxMJC8BfksXV3Yup8aFN-gYCHKX-rD4MyvwyEgA19fOt4kSRBH8x5BnYj19e97R3Lf_x7AQO9-zC-alSmMFb8dt6jWgSsXkGHX17udVDKiOC3JgFQgwqO5cVhHP4JFXUd3q-0OlRhHiW8ixnW9dTQhDhrtqA3lTljzAT8V51uoWnbhcXLb0hLfjXMIPMDbDT8BUx9VK5Sz4JUeSAi2QvfpUB_H77h2E_f9QbKRKRn0RapPf92rXB2vfQRPDxqdq-ii_LpiFWAfP9SlnbSVLzQaXuWrcYKtHv-mm2RSRE6cNKQ";
 
 const char *url = "https://example.com/firmware.bin"; //state url of your firmware image
@@ -44,7 +46,7 @@ String encode(String value) {
 
     cipher->setKey((char *)config.secretKey.c_str());
     String encoded = base64::encode(cipher->encryptString(value));
-    DBG("Encoding[%s], key[%s], encoded value[%s]",
+    log_d("Encoding[%s], key[%s], encoded value[%s]",
         value.c_str(), config.secretKey.c_str(), encoded.c_str());
 
     return encoded;
@@ -60,7 +62,7 @@ String decode(String value) {
     int decoded_len = base64_decode_chars(value.c_str(),value.length(),buffer);
 
     String decoded = cipher->decryptString(buffer);
-    DBG("Encoded[%s], key[%s], decoded value[%s]",
+    log_d("Encoded[%s], key[%s], decoded value[%s]",
         value.c_str(), config.secretKey.c_str(), decoded.c_str());
 
     return decoded;
@@ -73,7 +75,7 @@ public:
     Param(const char *n, String &var, bool p, bool pwd, const char *d) { name = n; privileged = p; if (pwd) type = TYPE_ENCRYPTED; else type = TYPE_STRING; value.charvalue = &var; defaultvalue.charvalue = (char *)d; }
     void set(const char *v) {
         if ((!config.isPrivileged()) && (privileged)) {
-            DBG("Privileged parameter[%s] not set", name);
+            log_d("Privileged parameter[%s] not set", name);
             return;
         }        
         if (type == TYPE_STRING) {
@@ -131,7 +133,7 @@ public:
 
     void store(Preferences &p) {
         if ((!config.isPrivileged()) && (privileged)) {
-            DBG("Privileged parameter[%s] not stored", name);
+            log_d("Privileged parameter[%s] not stored", name);
             return;
         }
         if ((type == TYPE_STRING) || (type == TYPE_ENCRYPTED)) {
@@ -182,7 +184,7 @@ bool Config::isPrivileged() {
 }
 
 void Config::init() {
-    DBG("Preferences init");
+    log_d("Preferences init");
 
     // read default preferences
     Preferences preferences;
@@ -195,14 +197,14 @@ void Config::init() {
     String key;
 
     if (!strcmp(buffer,SIGNATURE)) {
-        LOG("Valid config found, loading...");
+        log_i("Valid config found, loading...");
         for (int i = 0; i < SIZE; i++)
             params[i].load(preferences);
         key = preferences.getString("secretKey", secretkey);
-        LOG("Config loaded");
+        log_i("Config loaded");
     } else {
-        LOG("Invalid config found, loading default");
-        LOG("enable password is: 'secret', please change it before saving settings");
+        log_i("Invalid config found, loading default");
+        log_i("enable password is: 'secret', please change it before saving settings");
         for (int i = 0; i < SIZE; i++)
             params[i].reset();
         
@@ -215,14 +217,14 @@ void Config::init() {
 
     preferences.end();
 
-    DBG("Dumping config:");
+    log_d("Dumping config:");
     fullDump();
 }
 
 void Config::reset() {
     if (!privileged)
         return;
-    DBG("Clearing preferences");
+    log_d("Clearing preferences");
     Preferences preferences;
     preferences.begin(STORAGE, false);
     preferences.clear();
@@ -230,7 +232,7 @@ void Config::reset() {
 }
 
 void Config::save() {
-    DBG("Preferences saved");
+    log_d("Preferences saved");
     // read default preferences
     Preferences preferences;
     preferences.begin(STORAGE, false);
@@ -260,9 +262,9 @@ void Config::unlock(String pwd) {
 
     String token = encode(secretkey + chipId);
 
-    DBG("Token[%s]", token.c_str());
+    log_d("Token[%s]", token.c_str());
     if (!token.compareTo(pwd)) {
-        DBG("Token validated, privileged mode on");
+        log_d("Token validated, privileged mode on");
         privileged = true;
     }
     
@@ -277,7 +279,7 @@ void Config::load(char *json) {
         if (doc.containsKey(params[i].name)) {
             // set value        
             if ((!config.isPrivileged()) && (params[i].privileged)) {
-                DBG("Privileged parameter[%s] not stored", params[i].name);
+                log_d("Privileged parameter[%s] not stored", params[i].name);
             } else
                 params[i].set(doc[params[i].name].as<const char *>());
         }
@@ -288,18 +290,18 @@ void Config::fullDump() {
 
     for (int i = 0; i < SIZE; i++) {
         if (params[i].type == TYPE_ENCRYPTED) {
-            DBG("param[%s], encrypted value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
+            log_d("param[%s], encrypted value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
         } else if (params[i].type == TYPE_STRING) {
-            DBG("param[%s], string value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
+            log_d("param[%s], string value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
         } else if (params[i].type == TYPE_INT) {
-            DBG("param[%s], int value[%d]",params[i].name, *(params[i].value.intvalue));
+            log_d("param[%s], int value[%d]",params[i].name, *(params[i].value.intvalue));
         } else if (params[i].type == TYPE_BOOL) {
-            DBG("param[%s], bool value[%d]",params[i].name, *(params[i].value.boolvalue));
+            log_d("param[%s], bool value[%d]",params[i].name, *(params[i].value.boolvalue));
         }
     }
 
-    DBG("Encryption password[%s]",config.secretKey.c_str());
-    DBG("Privileged mode[%s]", privileged ? "enabled" : "disabled");
+    log_d("Encryption password[%s]",config.secretKey.c_str());
+    log_d("Privileged mode[%s]", privileged ? "enabled" : "disabled");
 }
 
 String Config::dump() {
@@ -307,19 +309,19 @@ String Config::dump() {
 
     for (int i = 0; i < SIZE; i++) {
         if ((!config.isPrivileged()) && (params[i].privileged)) {
-            DBG("Privileged parameter[%s] not stored", params[i].name);
+            log_d("Privileged parameter[%s] not stored", params[i].name);
         } else {
             if (params[i].type == TYPE_ENCRYPTED) {
-                DBG("Adding encrypted param[%s], value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
+                log_d("Adding encrypted param[%s], value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
                 doc[params[i].name] = *(params[i].value.charvalue);
             } else if (params[i].type == TYPE_STRING) {
-                DBG("Adding string param[%s], value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
+                log_d("Adding string param[%s], value[%s]",params[i].name, (*(params[i].value.charvalue)).c_str());
                 doc[params[i].name] = *(params[i].value.charvalue);
             } else if (params[i].type == TYPE_INT) {
-                DBG("Adding int param[%s], value[%d]",params[i].name, *(params[i].value.intvalue));
+                log_d("Adding int param[%s], value[%d]",params[i].name, *(params[i].value.intvalue));
                 doc[params[i].name] = *(params[i].value.intvalue);
             } else if (params[i].type == TYPE_BOOL) {
-                DBG("Adding bool param[%s], value[%d]",params[i].name, *(params[i].value.boolvalue));
+                log_d("Adding bool param[%s], value[%d]",params[i].name, *(params[i].value.boolvalue));
                 doc[params[i].name] = *(params[i].value.boolvalue);
             }
         }
@@ -327,7 +329,7 @@ String Config::dump() {
 
     String s;
     serializeJsonPretty(doc,s);
-    DBG("Raw json: %s", s.c_str());
+    log_d("Raw json: %s", s.c_str());
     return s;
 }
 
@@ -343,7 +345,7 @@ void Config::set(const char *p, const char *v) {
     int index = getParam(p);
 
     if (index >= 0) {
-        DBG("Setting param[%s], value[%s]", p, v);
+        log_d("Setting param[%s], value[%s]", p, v);
         params[index].set(v);
     }
 }
@@ -352,15 +354,17 @@ void Config::enable(String pass) {
     String cipherString = decode(password);
 
     if (!cipherString.compareTo(pass)) {
-        DBG("Going in privileged user mode");
+        log_d("Going in privileged user mode");
         privileged = true;
     } else {
-        DBG("Failed to go in privileged user mode");
+        log_d("Failed to go in privileged user mode");
         privileged = false;
     }
 }
 
 void Config::disable() {
-    DBG("Disabling privileged user mode");
+    log_d("Disabling privileged user mode");
     privileged = !privileged; //false;
 }
+
+} // namespace enableit

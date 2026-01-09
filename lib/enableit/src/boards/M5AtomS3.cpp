@@ -2,6 +2,8 @@
 
 #ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
 
+namespace enableit {
+
 M5AtomS3::M5AtomS3() {
 }
 
@@ -17,7 +19,8 @@ void M5AtomS3::begin(bool LCDEnable) {
 }
 
 static M5AtomS3 _board;
-
 Board& board = _board;
+
+} // namespace enableit
 
 #endif

@@ -2,6 +2,8 @@
 
 #ifdef ENABLEIT_BOARD_BPI_LEAF_S3
 
+namespace enableit {
+
 BpiLeafS3::BpiLeafS3() {}
 BpiLeafS3::~BpiLeafS3() {}
 
@@ -15,5 +17,7 @@ void BpiLeafS3::end() {
 
 static BpiLeafS3 _board;
 Board& board = _board;
+
+} // namespace enableit
 
 #endif

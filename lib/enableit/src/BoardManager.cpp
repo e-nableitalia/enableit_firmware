@@ -7,6 +7,13 @@
 #include <NoopApp.h>
 #include <RebootApp.h>
 
+namespace enableit {
+
+extern "C" {    
+    extern const BoardAppRegistrar __start_board_apps[];
+    extern const BoardAppRegistrar __stop_board_apps[];    
+}
+
 std::recursive_mutex state_mtx;
 
 #if !defined(NO_GLOBAL_INSTANCES)
@@ -18,36 +25,28 @@ RebootState   reboot;
 
 BoardManager::BoardManager() {
     currentApp = nullptr;
-    init();
 }
 
 void BoardManager::init() {
-
+    log_i("BoardManager Init");
     Console.init(115200,true);
-    
-    DBG("Init");
-
-    for (int i = 0; i < MAX_APPS; i++)
-        apps[i] = nullptr;
-
-    // add default apps
-    addApp(&noop);
-    addApp(&reboot);
-    
-    DBG("Init done");
 }
 
 bool BoardManager::addApp(BoardApp *state) {
+    std::lock_guard<std::recursive_mutex> lck(state_mtx);
+    return addAppNoLock(state);
+}
+
+bool BoardManager::addAppNoLock(BoardApp *state) {
     if (state) {
-        std::lock_guard<std::recursive_mutex> lck(state_mtx);
         for (int i = 0; i < MAX_APPS; i++)
             if (apps[i] == nullptr) {
-                DBG("Adding App[%s] in position[%d]", state->name(), i);
+                log_i("Adding App[%s] in position[%d]", state->name(), i);
                 apps[i] = state;
                 return true;
             }
     }
-    DBG("Failed to add App[%s]", state->name());
+    log_e("Failed to add App[%s]", state->name());
     return false;
 }
 
@@ -56,21 +55,21 @@ bool BoardManager::setApp(const char *state) {
     for (int i = 0; i < MAX_APPS; i++)
         if ((apps[i] != nullptr) && (!strcmp(state,apps[i]->name()))) {
             if (currentApp != nullptr) {
-                DBG("Leaving App[%s]", currentApp->name());
+                log_d("Leaving App[%s]", currentApp->name());
                 currentApp->leave();
             }
             currentApp = apps[i];
-            DBG("Entering App[%s]", currentApp->name());
+            log_d("Entering App[%s]", currentApp->name());
             currentApp->enter();
             return true;
         }
-    DBG("App[%s] not found", state);
+    log_e("App[%s] not found", state);
     panic(ENOENT, "App not found");
     return false;
 }
 
 void BoardApp::changeApp(const char *state) {
-    DBG("Going in App[%s]", state);
+    log_d("Going in App[%s]", state);
     eBoard.setApp(state);
 }
 
@@ -78,15 +77,28 @@ BoardApp **BoardApp::apps() {
     return eBoard.getApps();
 }
 
+bool BoardApp::hasApp(const char *state_name) {
+    return eBoard.hasApp(state_name);
+}
+
+bool BoardManager::hasApp(const char *state_name) {
+    std::lock_guard<std::recursive_mutex> lck(state_mtx);
+    for (int i = 0; i < MAX_APPS; i++)
+        if ((apps[i] != nullptr) && (!strcmp(state_name,apps[i]->name()))) {
+            return true;
+        }
+    return false;
+}
+
 void BoardManager::loop() {
-    //DBG("board loop");
+    //log_d("board loop");
     {
         std::lock_guard<std::recursive_mutex> lck(state_mtx);
         if (currentApp != nullptr)
             currentApp->process();
     }
 #ifdef LOOP_DELAY
-    //DBG("Sleeping[%d] milli seconds", LOOP_DELAY);
+    //log_d("Sleeping[%d] milli seconds", LOOP_DELAY);
     delay(LOOP_DELAY);
 #endif
 }
@@ -106,11 +118,11 @@ void BoardManager::setApp(BoardApp *s) {
 void BoardManager::panic(int code, const char *description) {
     if (config.devMode) {
         while (1) {
-            ERR("Board Error[%d] Reason: %s", code, description);
+            log_e("Board Error[%d] Reason: %s", code, description);
             sleep(3);
         }
     } else {
-        ERR("Board Error[%d] Reason: %s, rebooting in %d seconds", code, description, PANIC_TIMEOUT);
+        log_e("Board Error[%d] Reason: %s, rebooting in %d seconds", code, description, PANIC_TIMEOUT);
         sleep(PANIC_TIMEOUT);
         ESP.restart();
     }
@@ -131,3 +143,5 @@ Board &BoardManager::getBoard() {
 BoardManager &BoardManager::instance() {
     return eBoard;
 }
+
+} // namespace enableit

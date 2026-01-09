@@ -1,6 +1,8 @@
 #include <BleConsoleTransport.h>
 #include <BleUuids.h>
 
+namespace enableit {
+
 // BleConsoleTransport implementation
 BleConsoleTransport::BleConsoleTransport(
     BtServer& btServer,
@@ -89,3 +91,5 @@ void BleConsoleTransport::onUnsubscribe() {
 //     BleUuids::Console::TX
 // );
 // Console.registerTransport(&bleConsole, PRIORITY_BLE);
+
+} // namespace enableit

@@ -4,10 +4,26 @@
 
 #include <Arduino.h>
 #include <Board.h>
-#include <boards/WifiHalEsp32.h>
+#include <boards/WifiEsp32.h>
+
+namespace enableit {
+
+class XiaoConsoleTransport : public ConsoleTransport {
+public:
+    XiaoConsoleTransport() : serial(Serial) {}
+    void begin(int baudRate) override { serial.begin(baudRate); }
+    bool available() override { return serial.available(); }
+    int read() override { return serial.read(); }
+    size_t write(uint8_t c) override { return serial.write(c); }
+    bool isConnected() override { return true; }
+    int peek() override { return serial.peek(); }
+    ConsolePriority getPriority() const override { return PRIORITY_SERIAL; }
+private:
+    HWCDC& serial;
+};
 
 class XiaoESP32S3 : public Board {
-   public:
+public:
     XiaoESP32S3(/* args */);
     ~XiaoESP32S3();
 
@@ -18,12 +34,18 @@ class XiaoESP32S3 : public Board {
     Display& getDisplay() override { return Lcd; }
 
     // HAL aggregate
-    WifiHal& wifi() override { return wifi_; }
+    Wifi& wifi() override { return wifi_; }
 
-   private:
-    WifiHalEsp32 wifi_;
+    // Return the default hardware serial port
+    ConsoleTransport& serial() override { return serialConsole_; }
+
+private:
+    WifiEsp32 wifi_;
+    XiaoConsoleTransport serialConsole_;
 };
+
+} // namespace enableit
 
 #endif
 
-// End of file M5AtomS3.h
+// End of file XiaoESP32S3.h

@@ -2,19 +2,18 @@
 
 #include "Board.h"
 #include "BtServer.h"
-#include "WifiHal.h"
+#include "Wifi.h"
 
-#define THINGSBOARD_SUPPORT 1
+#if defined(THINGSBOARD_SUPPORT)
+#include <WiFiClient.h>
+#include <ThingsBoard.h>
+
 // MQTT port used to communicate with the server, 1883 is the default unencrypted MQTT port.
 constexpr uint16_t THINGSBOARD_PORT = 1883U;
 
 // Maximum size packets will ever be sent or received by the underlying MQTT client,
 // if the size is to small messages might not be sent or received messages will be discarded
 constexpr uint32_t MAX_MESSAGE_SIZE = 256U;
-
-#if THINGSBOARD_SUPPORT
-#include <WiFiClient.h>
-#include <ThingsBoard.h>
 #endif
 
 // BootConfig: minimal config needed for runtime policy
@@ -31,9 +30,11 @@ struct BootConfig {
     // Add other fields as needed
 };
 
+namespace enableit {
+
 class RuntimeManager {
 public:
-    RuntimeManager(Board& board, BtServer& btServer);
+    RuntimeManager(Board& board);
 
     // Wi-Fi control (policy)
     bool enableWifi(const BootConfig& config);
@@ -52,7 +53,7 @@ public:
     bool wifiOn() const { return wifiOn_; }
     bool bleOn() const { return bleOn_; }
 
-#if THINGSBOARD_SUPPORT
+#if defined(THINGSBOARD_SUPPORT)
     bool enableThingsBoard(const BootConfig& config);
     void disableThingsBoard();
     bool thingsBoardConnected() const;
@@ -60,13 +61,13 @@ public:
 
 private:
     Board& board_;
-    BtServer& btServer_;
+    BtServer btServer_;
     bool wifiOn_ = false;
     bool bleOn_ = false;
     bool mdnsOn_ = false;
     bool insightsOn_ = false;
 
-#if THINGSBOARD_SUPPORT
+#if defined(THINGSBOARD_SUPPORT)
     WiFiClient wifiClient_;
     ThingsBoard tb_;
     bool thingsBoardOn_ = false;
@@ -74,3 +75,5 @@ private:
 };
 
 extern RuntimeManager runtime;
+
+} // namespace enableit

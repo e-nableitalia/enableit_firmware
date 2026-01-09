@@ -4,28 +4,51 @@
 
 #include <M5Unified.h>
 #include <Arduino.h>
-#include <JC_Button.h>
-#include "M5Display.h"
 #include <Board.h>
-#include <boards/WifiHalEsp32.h>
+#include <Display.h>
+#include <boards/M5Display.h>
+#include <boards/WifiEsp32.h>
+
+namespace enableit {
+
+class M5ConsoleTransport : public ConsoleTransport {
+public:
+    M5ConsoleTransport() : serial(Serial) {}
+    void begin(int baudRate) override { serial.begin(baudRate); }
+    bool available() override { return serial.available(); }
+    int read() override { return serial.read(); }
+    size_t write(uint8_t c) override { return serial.write(c); }
+    bool isConnected() override { return true; }
+    int peek() override { return serial.peek(); }
+    ConsolePriority getPriority() const override { return PRIORITY_SERIAL; }
+private:
+    HardwareSerial& serial;
+};
 
 class M5AtomS3 : public m5::M5Unified, public Board {
 public:
     M5AtomS3();
     ~M5AtomS3();
 
-    M5Display Lcd = M5Display();
-
     void begin(bool LCDEnable = true) override;
     void end() override { /* implementazione vuota o spegnimento hardware */ }
-    M5Display& getDisplay() override { return Lcd; }
+
+    // Use fully qualified name for enableit::Display
+    enableit::Display& getDisplay() override { return Lcd; }
 
     // HAL aggregate
-    WifiHal& wifi() override { return wifi_; }
+    Wifi& wifi() override { return wifi_; }
+
+    // Return the default hardware serial port
+    ConsoleTransport& serial() override { return serialConsole_; }
 
 private:
-    WifiHalEsp32 wifi_;
+    M5Display Lcd;
+    WifiEsp32 wifi_;
+    M5ConsoleTransport serialConsole_;
 };
+
+} // namespace enableit
 
 #endif
 

@@ -5,6 +5,8 @@
 // Forward declaration only
 class BLECharacteristic;
 
+namespace enableit {
+
 // BLE-agnostic handler interface
 class BleCharacteristicHandler {
 public:
@@ -15,4 +17,6 @@ public:
     virtual void onSubscribe() {}
     virtual void onUnsubscribe() {}
 };
+
+} // namespace enableit
 

@@ -1,5 +1,6 @@
 #pragma once
 
+namespace enableit {
 namespace BleUuids {
 
 constexpr char VENDOR_BASE[] = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c000000";
@@ -22,4 +23,5 @@ namespace Ota {
   constexpr char DATA[]    = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c030002";
 }
 
-}
+} // namespace BleUuids
+} // namespace enableit

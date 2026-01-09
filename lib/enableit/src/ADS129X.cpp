@@ -75,12 +75,12 @@ ADS129X::ADS129X() {
 }
 
 void ADS129X::init(int _DRDY, int _CS) {
-    DBG("ADS Setup");
+    log_d("ADS Setup");
     // initialize the  data ready and chip select pins:
     DRDY = _DRDY;
     CS = _CS;
     ADS129X_CS = _CS;  
-    DBG("SPI Setup");
+    log_d("SPI Setup");
     // SPI Setup
     SPI.begin(EMG_SCLK, EMG_MISO, EMG_MOSI, EMG_CS1);
 
@@ -93,7 +93,7 @@ void ADS129X::init(int _DRDY, int _CS) {
     // set bit order
     SPI.setBitOrder(MSBFIRST); //SPI data format is MSB (pg. 25)
 
-    DBG("PIN Setup");
+    log_d("PIN Setup");
     // clk provided by internal clock
     pinMode(EMG_CLK, INPUT);
     pinMode(EMG_START,OUTPUT);
@@ -105,7 +105,7 @@ void ADS129X::init(int _DRDY, int _CS) {
     // cs high -> ads disabled
     digitalWrite(CS, HIGH);
     
-    DBG("ADS Setup complete");
+    log_d("ADS Setup complete");
 }
 
 /**
@@ -142,7 +142,7 @@ void ADS129X::RESET() {
 
 //System Commands
 void ADS129X::sendCommand(byte cmd) {
-    DBG("Sending command[0x%x]", cmd);    
+    log_d("Sending command[0x%x]", cmd);    
     digitalWrite(CS, LOW); //Low to communicate
     SPI.transfer(cmd);
     delayMicroseconds(2);
@@ -176,7 +176,7 @@ void ADS129X::RDATAC() {
     if (dataMode)
         return;
     
-    DBG("RDATAC");
+    log_d("RDATAC");
 
     dataMode = true;
     START();
@@ -188,7 +188,7 @@ void ADS129X::RDATAC() {
  * Stop Read Data Continuously mode.
  */
 void ADS129X::SDATAC() {
-    DBG("SDATAC");
+    log_d("SDATAC");
     if (dataMode) {
         dataMode = false;
         disableIrq();
@@ -201,7 +201,7 @@ void ADS129X::SDATAC() {
  * Start/restart (synchronize) conversions.
  */
 void ADS129X::START() {
-    DBG("Start");
+    log_d("Start");
 
     digitalWrite(EMG_START,HIGH);
     //sendCommand(ADS129X_CMD_START);
@@ -211,21 +211,21 @@ void ADS129X::START() {
  * Stop conversion.
  */
 void ADS129X::STOP() {
-    DBG("Stop");
+    log_d("Stop");
 
     //sendCommand(ADS129X_CMD_STOP);
     digitalWrite(EMG_START,LOW);
 }
 
 void ADS129X::enableIrq() {
-    DBG("Attaching interrupt");
+    log_d("Attaching interrupt");
     ADS129X_isr = true;
     attachInterrupt(DRDY, ADS129X_dataReadyISR, FALLING);
 }
 
 void ADS129X::disableIrq() {
     if (ADS129X_isr) {
-        DBG("Detach interrupt");
+        log_d("Detach interrupt");
         ADS129X_isr = false;
         detachInterrupt(DRDY);
     }
@@ -309,7 +309,7 @@ void ADS129X::RREG(byte _address, byte _numRegisters, byte *_data) {
  * @param _value   register value
  */
 void ADS129X::WREG(byte _address, byte _value) {
-    //DBG("Write reg[%d], value[%d]", _address, _value);
+    //log_d("Write reg[%d], value[%d]", _address, _value);
     byte opcode1 = ADS129X_CMD_WREG | (_address & 0x1F); //001rrrrr; _RREG = 00100000 and _address = rrrrr
 
     ADS129xCommandLock lock(this);
@@ -337,18 +337,18 @@ byte ADS129X::getDeviceId() {
     delayMicroseconds(2);
     digitalWrite(CS, HIGH); //Low to communicate
     
-    DBG("Device Id[%d]", data);
+    log_d("Device Id[%d]", data);
 
     return data;
 }
 
 void ADS129X::setBufferedTransfer(int size) {
     if (size > 0) {
-        DBG("Buffered transfer enabled, size[%d]", size * NUM_CHANNELS);
+        log_d("Buffered transfer enabled, size[%d]", size * NUM_CHANNELS);
         ADS129X_bufferedTransfer = true;
         dataBuffer.size(size * NUM_CHANNELS, CHANNEL_DATA_SIZE, CHANNEL_DATA_SIZE * NUM_CHANNELS);
     } else {
-        DBG("Buffered transfer disabled");
+        log_d("Buffered transfer disabled");
         ADS129X_bufferedTransfer = false;
         dataBuffer.size(0, 0, 0);
     }
@@ -473,7 +473,7 @@ boolean ADS129X::getData(long *buffer) {
  */
 void ADS129X::configChannel(byte _channel, boolean _powerDown, byte _gain, byte _mux) {
     byte value = ((_powerDown & 1)<<7) | ((_gain & 7)<<4) | (_mux & 7);
-    DBG("Channel[%d], Enabled[%s], Source[%s], Gain[%s]", _channel, _powerDown ? "false" : "true", sources[_mux], gains[_gain]);
+    log_d("Channel[%d], Enabled[%s], Source[%s], Gain[%s]", _channel, _powerDown ? "false" : "true", sources[_mux], gains[_gain]);
 
     WREG(ADS129X_REG_CH1SET + _channel, value);
 }
@@ -486,14 +486,14 @@ void ADS129X::addEvent(const char *evt) {
 
 void ADS129X::poll() {
     for (int i = 0; i < numEvents; i++) {
-        DBG("Event[%s]", events[i].c_str());
+        log_d("Event[%s]", events[i].c_str());
     }
     numEvents = 0;
 
 /* // DMS
    // Debug disabled
     if (isr_tick)
-        DBG("isr ticks[%d], isr in[%d], isr out[%d]", isr_tick, isr_in, isr_out);
+        log_d("isr ticks[%d], isr in[%d], isr out[%d]", isr_tick, isr_in, isr_out);
     
     dataBuffer.dump();
 */
