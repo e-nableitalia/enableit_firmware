@@ -12,6 +12,8 @@
 
 #define APP_PRESSURE "pressure"
 
+using namespace enableit;
+
 class PressureApp : public BoardApp {
     void enter();
     void leave();

@@ -3,7 +3,6 @@
 #include <WiFi.h>
 #include <BleMouse.h>
 #include <Display.h>
-#include <BoardAppRegistrar.h>
 #include <Config.h>
 #include "PressureApp.h"
 
@@ -19,11 +18,10 @@
 BleMouse bleMouse;
 const int pressureThreshold = 1000;  // Adjust this threshold according to your sensor
 
-PressureApp pressureApp;
-REGISTER_BOARD_APP(pressureApp);
+BOARDAPP_INSTANCE(PressureApp);
 
 void PressureApp::enter() {
-    DBG("Entering in Pressure App state");
+    log_d("Entering in Pressure App state");
     display.clear();
     display.setTextSize(1);  // Set text size
     display.setTextColor(Display::Color::WHITE);  // Set text color to white
@@ -31,7 +29,7 @@ void PressureApp::enter() {
     pinMode(PRESSURE_PIN, INPUT);
 }
 void PressureApp::leave() {
-    DBG("Leaving boot Pressure App state");
+    log_d("Leaving boot Pressure App state");
 }
 
 void PressureApp::process() {
@@ -55,7 +53,7 @@ void PressureApp::process() {
     display.setCursor(0,10);
     display.print("Pressure: ");
     display.println(pressureValue);
-    DBG("Pressure %d", pressureValue);
+    log_d("Pressure %d", pressureValue);
     
     delay(50);  // Delay for stability
 }
