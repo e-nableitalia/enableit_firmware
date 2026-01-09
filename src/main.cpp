@@ -32,7 +32,4 @@ void setup() {
 
 void loop() {
     ENABLEIT_LOOP();
-    Serial.println("Main loop...");
-    log_i("Main loop...");
-    delay(1000);
 }

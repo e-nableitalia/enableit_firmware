@@ -48,12 +48,10 @@ void ConsoleWrapper::poll()
       entry.transport->poll();
     }
   }
-  selectActiveTransport();
 }
 
 size_t ConsoleWrapper::write(uint8_t c)
 {
-  selectActiveTransport();
   if (activeTransport)
   {
     return activeTransport->write(c);
@@ -64,7 +62,6 @@ size_t ConsoleWrapper::write(uint8_t c)
 
 int ConsoleWrapper::available()
 {
-  selectActiveTransport();
   if (activeTransport)
   {
     return activeTransport->available();
@@ -74,7 +71,6 @@ int ConsoleWrapper::available()
 
 int ConsoleWrapper::read()
 {
-  selectActiveTransport();
   if (activeTransport)
   {
     return activeTransport->read();
@@ -84,7 +80,6 @@ int ConsoleWrapper::read()
 
 void ConsoleWrapper::echo(uint8_t c)
 {
-  selectActiveTransport();
   if (activeTransport && activeTransport->getPriority() == PRIORITY_SERIAL)
   {
     activeTransport->write(c);
@@ -93,7 +88,6 @@ void ConsoleWrapper::echo(uint8_t c)
 
 int ConsoleWrapper::peek()
 {
-  selectActiveTransport();
   if (activeTransport)
   {
     return activeTransport->peek();
