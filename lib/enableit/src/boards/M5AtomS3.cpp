@@ -21,6 +21,8 @@ void M5AtomS3::begin(bool LCDEnable) {
 static M5AtomS3 _board;
 Board& board = _board;
 
+Display& display = _board.getDisplay();
+
 } // namespace enableit
 
 #endif

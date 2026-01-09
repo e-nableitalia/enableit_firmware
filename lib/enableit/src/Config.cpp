@@ -155,7 +155,7 @@ public:
 Param params[] = {
     { "wifissid", config.wifiSsid, true, false, "enable-test" }, 
     { "wifipwd", config.wifiPassword, true, false, "enableit" }, 
-    { "wifi", config.wifi, false, true }, 
+    { "wifi", config.wifi, false, false }, 
     { "apmode", config.apMode, true, false },
     { "thingsboard", config.thingsboard, true, false, "dev.e-nableitalia.it" },
     { "deviceid", config.deviceid, true, false, "ed629b30-16dd-11ee-be0f-a557af31b048" },

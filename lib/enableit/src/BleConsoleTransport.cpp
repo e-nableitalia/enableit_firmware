@@ -9,7 +9,7 @@ BleConsoleTransport::BleConsoleTransport(
     const std::string& rxCharUUID,
     const std::string& txCharUUID
 )
-    : btServer_(btServer), rxUuid_(rxCharUUID), txUuid_(txCharUUID)
+    : btServer_(btServer), rxUuid_(rxCharUUID), txUuid_(txCharUUID), ConsoleTransport("BLE Console")
 {
     btServer_.registerCharacteristic(
         rxUuid_.c_str(),

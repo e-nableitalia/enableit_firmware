@@ -241,7 +241,7 @@ void ConsoleWrapper::registerTransport(ConsoleTransport *transport, ConsolePrior
   if (!transport)
     return;
 
-  log_i("Registering transport with priority %d", priority);
+  log_i("Registering transport %s with priority %d", transport->getName().c_str(), priority);
   TransportEntry entry;
   entry.transport = transport;
   entry.priority = priority;
@@ -257,6 +257,7 @@ void ConsoleWrapper::unregisterTransport(ConsoleTransport *transport)
   {
     if (it->transport == transport)
     {
+      log_i("Unregistering transport %s", transport->getName().c_str());
       transports.erase(it);
       break;
     }
@@ -270,6 +271,7 @@ void ConsoleWrapper::onTransportConnected(ConsoleTransport *transport)
   {
     if (entry.transport == transport)
     {
+      log_i("Transport %s connected", transport->getName().c_str());
       entry.state = CONSOLE_CONNECTED;
       break;
     }
@@ -283,6 +285,7 @@ void ConsoleWrapper::onTransportDisconnected(ConsoleTransport *transport)
   {
     if (entry.transport == transport)
     {
+      log_i("Transport %s disconnected", transport->getName().c_str());
       entry.state = CONSOLE_DISCONNECTED;
       break;
     }
@@ -298,11 +301,17 @@ void ConsoleWrapper::selectActiveTransport()
   {
     if (entry.state == CONSOLE_CONNECTED && entry.priority > bestPriority)
     {
+      log_i("Selecting transport %s with priority %d", entry.transport->getName().c_str(), entry.priority);
       best = entry.transport;
       bestPriority = entry.priority;
     }
   }
   activeTransport = best;
+  if (!activeTransport)
+  {
+    log_i("No active transport, defaulting to Serial");
+    activeTransport = &board.serial();
+  }
 }
 
 ConsoleTransport *ConsoleWrapper::getActiveTransport() const
@@ -345,7 +354,7 @@ void TelnetConsoleTransport::onInputReceivedStatic(String str) {
     if (_instance) _instance->onInput(str);
 }
 
-TelnetConsoleTransport::TelnetConsoleTransport()
+TelnetConsoleTransport::TelnetConsoleTransport() : ConsoleTransport("Telnet Console")
 {
     connected = false;
     _instance = this;

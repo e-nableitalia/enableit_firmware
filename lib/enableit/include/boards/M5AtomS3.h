@@ -13,7 +13,7 @@ namespace enableit {
 
 class M5ConsoleTransport : public ConsoleTransport {
 public:
-    M5ConsoleTransport() : serial(Serial) {}
+    M5ConsoleTransport() : ConsoleTransport("M5 Console"), serial(Serial) {}
     void begin(int baudRate) override { serial.begin(baudRate); }
     bool available() override { return serial.available(); }
     int read() override { return serial.read(); }
@@ -22,7 +22,7 @@ public:
     int peek() override { return serial.peek(); }
     ConsolePriority getPriority() const override { return PRIORITY_SERIAL; }
 private:
-    HardwareSerial& serial;
+    HWCDC& serial;
 };
 
 class M5AtomS3 : public m5::M5Unified, public Board {

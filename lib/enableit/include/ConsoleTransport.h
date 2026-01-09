@@ -13,6 +13,7 @@ class ConsoleWrapper;
 class ConsoleTransport {
     friend class ConsoleWrapper;
 public:
+    ConsoleTransport(const String& name = "") : name(name) {}
     virtual ~ConsoleTransport() {}
     virtual void begin(int baudRate) = 0;
     virtual void attach(ConsoleWrapper* wrapper) { this->wrapper = wrapper; }
@@ -24,10 +25,12 @@ public:
     virtual ConsolePriority getPriority() const = 0;
     virtual bool needsPoll() const { return false; }
     virtual void poll() {}
+    const String& getName() const { return name; }
 protected:
     void notifyConnect();
     void notifyDisconnect();
     ConsoleWrapper* wrapper = nullptr;
+    String name;
 };
 
 } // namespace enableit

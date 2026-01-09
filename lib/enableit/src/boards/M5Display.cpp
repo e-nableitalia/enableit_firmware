@@ -16,10 +16,6 @@ void M5Display::begin() {
     m5gfx::M5GFX::setRotation(1);
 }
 
-static M5Display _display;
-
-Display& display = _display;
-
 } // namespace enableit
 
 #endif

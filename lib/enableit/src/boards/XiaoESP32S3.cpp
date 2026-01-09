@@ -18,6 +18,8 @@ void XiaoESP32S3::end() {
 static XiaoESP32S3 _board;
 Board& board = _board;
 
+Display& display = _board.getDisplay();
+
 } // namespace enableit
 
 #endif

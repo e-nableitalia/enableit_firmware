@@ -10,7 +10,7 @@ namespace enableit {
 
 class XiaoConsoleTransport : public ConsoleTransport {
 public:
-    XiaoConsoleTransport() : serial(Serial) {}
+    XiaoConsoleTransport() : ConsoleTransport("Xiao Console"), serial(Serial) {}
     void begin(int baudRate) override { serial.begin(baudRate); }
     bool available() override { return serial.available(); }
     int read() override { return serial.read(); }
@@ -27,8 +27,6 @@ public:
     XiaoESP32S3(/* args */);
     ~XiaoESP32S3();
 
-    MockDisplay Lcd = MockDisplay();
-
     void begin(bool LCDEnable = true) override;
     void end() override;
     Display& getDisplay() override { return Lcd; }
@@ -40,6 +38,7 @@ public:
     ConsoleTransport& serial() override { return serialConsole_; }
 
 private:
+    MockDisplay Lcd;
     WifiEsp32 wifi_;
     XiaoConsoleTransport serialConsole_;
 };
