@@ -64,7 +64,7 @@ private:
     void interactiveMode();
 
     unsigned long start;
-    BoardApp *state;
+    enableit::BoardApp *state;
 
     CommandParser<BootLoader> parser;
     bool devMode;

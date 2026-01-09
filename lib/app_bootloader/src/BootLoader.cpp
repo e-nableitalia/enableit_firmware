@@ -2,6 +2,7 @@
 #include <Esp.h>
 #include <SPIFFS.h>
 #include <Board.h>
+#include <WifiHal.h>
 #include <Config.h>
 #include <RuntimeManager.h>
 
@@ -24,12 +25,12 @@
 BootLoader::BootLoader() {
 }
 
-void BootLoader::init(BoardApp *s) {
-    DBG("Initializing BootLoader");
+void BootLoader::init(enableit::BoardApp *s) {
+    log_d("Initializing BootLoader");
     state = s;
     bootState = BootState::WAIT_USERINPUT;
     devMode = false;
-    DBG(""); DBG("");
+    log_d(""); log_d("");
     OUT("eNable.it - Bionic Platform");
 
     Console.print("Booting");
@@ -37,7 +38,7 @@ void BootLoader::init(BoardApp *s) {
         Console.print(".");
         usleep(200000);
     }
-    Console.println("done");
+    log_d("done");
 
     OUT("Firmware Rev %s", FWREV);
 
@@ -63,7 +64,7 @@ void BootLoader::init(BoardApp *s) {
     display.println("eNable.it - Bionic Platform");
     display.println("Firmware Rev " FWREV);
 
-    DBG("Initializing board config");
+    log_d("Initializing board config");
     config.init();
 
     if (config.devApp == "") {
@@ -91,7 +92,7 @@ void BootLoader::init(BoardApp *s) {
     parser.add("run", CMD_RUN, &BootLoader::cmdRun);
     parser.add("list", CMD_LIST, &BootLoader::cmdList);
 
-    DBG("Commands loaded");
+    log_d("Commands loaded");
 
     if(!SPIFFS.begin(true))
     {
@@ -117,20 +118,20 @@ void BootLoader::init(BoardApp *s) {
 
 #if THINGSBOARD_SUPPORT
         if (runtime.wifiOn() && !bootCfg.deviceid.isEmpty()) {
-            DBG("Enabling thingsboard");
+            log_d("Enabling thingsboard");
             if (!runtime.enableThingsBoard(bootCfg)) {
-                ERR("Failed to connect to ThingsBoard");
+                log_e("Failed to connect to ThingsBoard");
                 return;
             }
         }
 #endif
 
         if (config.telnet) {
-            DBG("Enabling telnet server");
+            log_d("Enabling telnet server");
             TelnetConsoleTransport::instance()->enable(true);
         }
     } else {
-        DBG("Wifi disabled");
+        log_d("Wifi disabled");
     }
 
     display.setCursor(0, 0);
@@ -138,7 +139,7 @@ void BootLoader::init(BoardApp *s) {
     display.print(board.wifi().getIpAddress());
 
     start = millis();
-    DBG("Boot timeout[%d], start time[%d]", config.bootTimeout, start);
+    log_d("Boot timeout[%d], start time[%d]", config.bootTimeout, start);
     OUT("Press button in %d seconds to activate dev application", config.bootTimeout);
     OUT("or press any key on USB Serial to activate interactive mode");
 }
@@ -158,24 +159,34 @@ void BootLoader::waitUserTimeout() {
         }
         
         if (Console.available() > 0) {
-            DBG("BOOT: Boot procedure stopped");
+            log_d("BOOT: Boot procedure stopped");
 
             interactiveMode();
         }
     } else {
-        DBG("Start%d], now[%d]", start, now);
+        log_d("Start[%d], now[%d]", start, now);
         if (devMode) {
-            DBG("BOOT: Boot timeout expired, activating dev application[%s]",config.devApp.c_str());
+            log_d("BOOT: Boot timeout expired, trying to activate dev application[%s]",config.devApp.c_str());
+            if (!state->hasApp(config.devApp.c_str())) {
+                log_d("BOOT: Dev application[%s] not found, going in interactive mode",config.devApp.c_str());
+                interactiveMode();
+                return;
+            }
             state->changeApp(config.devApp.c_str());        
         } else {
-            DBG("BOOT: Boot timeout expired, activating default application[%s]",config.mainApp.c_str());
+            log_d("BOOT: Boot timeout expired, trying to activate default application[%s]",config.mainApp.c_str());
+            if (!state->hasApp(config.mainApp.c_str())) {
+                log_d("BOOT: Default application[%s] not found, going in interactive mode",config.mainApp.c_str());
+                interactiveMode();
+                return;
+            }
             state->changeApp(config.mainApp.c_str());
         }
     }
 }
 
 void BootLoader::interactiveMode() {
-    DBG("BOOT: Entering in interactive mode");
+    log_d("BOOT: Entering in interactive mode");
     parser.display();
     bootState = BootState::WAIT_COMMAND;
 }

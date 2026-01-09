@@ -10,11 +10,15 @@
 #include <Arduino.h>
 #include <BoardApp.h>
 
-class BootLoaderApp : public BoardApp {
-    void enter();
-    void leave();
-    void process();
-    const char *name();
+class BootLoaderApp : public enableit::BoardApp {
+public:
+    BootLoaderApp() {
+        log_i("BootLoaderApp constructor");
+    }
+    virtual void enter();
+    virtual void leave();
+    virtual void process();
+    virtual const char *name();
 };
 
 #endif // BOOTLOADER_APP_H
