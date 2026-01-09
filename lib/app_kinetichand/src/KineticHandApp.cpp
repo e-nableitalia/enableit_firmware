@@ -2,7 +2,6 @@
 #include <Console.h>
 #include <WiFi.h>
 #include <Board.h>
-#include <BoardAppRegistrar.h>
 #include <Display.h>
 #include <Config.h>
 #include "KineticHandApp.h"
@@ -16,18 +15,17 @@ int servo_angle = 0;
 // hand mode
 int mode = MODE_PROGRESSIVE;
 
-KineticHandApp kineticHandApp;
-REGISTER_BOARD_APP(kineticHandApp);
+BOARDAPP_INSTANCE(KineticHandApp);
 
 void KineticHandApp::enter() {
-    DBG("Entering in KineticHand App state");
+    log_d("Entering in KineticHand App state");
     display.clear();
     display.setTextSize(1);  // Set text size
     display.setTextColor(Display::Color::WHITE);  // Set text color to white
     handInit();
 }
 void KineticHandApp::leave() {
-    DBG("Leaving KineticHand App state");
+    log_d("Leaving KineticHand App state");
 }
 
 void KineticHandApp::process() {
@@ -58,7 +56,7 @@ void KineticHandApp::process() {
     display.println(servo_angle);
 #endif
 
-    DBG("Pressure %d, Servo %d", pressureValue, servo_angle);
+    log_d("Pressure %d, Servo %d", pressureValue, servo_angle);
     
     delay(50);  // Delay for stability
 }

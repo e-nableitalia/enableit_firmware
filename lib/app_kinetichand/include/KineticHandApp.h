@@ -12,6 +12,8 @@
 
 #define APP_KINETICHAND "kinetichand"
 
+using namespace enableit;
+
 class KineticHandApp : public BoardApp {
     void enter();
     void leave();
