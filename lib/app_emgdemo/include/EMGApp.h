@@ -18,6 +18,8 @@
 
 #include <RTPPackets.h>
 
+#define APP_EMG      "emgdemo"
+
 class EMGApp : public BoardApp {
     void enter();
     void leave();
@@ -48,7 +50,7 @@ class EMGApp : public BoardApp {
 
     void sendHost(String _host,int remotePort, int frame, int delay);
 
-    const char *name() { return "emg"; }
+    const char *name() { return APP_EMG; }
     
     SerialEmg   emg;
     long        buffer[9];

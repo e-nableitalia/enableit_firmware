@@ -1,5 +1,4 @@
 #include <BioTelemetry.h>
-#include <BoardAppRegistrar.h>
 #include "EMGApp.h"
 #include <WiFiUdp.h>
 
@@ -53,11 +52,10 @@ int produced = 0;
 
 bool runcommand = true;
 
-EMGApp emgApp;
-REGISTER_BOARD_APP(emgApp);
+BOARDAPP_INSTANCE(EMGApp);
 
 void EMGApp::enter() {
-    DBG("enter EMGApp");
+    log_d("enter EMGApp");
     parser.init(this);
     parser.add("on", CMD_ON, &EMGApp::cmdSignalHigh);
     parser.add("off", CMD_OFF, &EMGApp::cmdSignalLow);
@@ -90,11 +88,11 @@ void EMGApp::enter() {
     // self test
     cmdSetup();
 
-    DBG("Sample commands:");
-    DBG("** Reference signal 2Hz test **");
-    DBG("test 2hz 2x");
-    DBG("source all test");
-    DBG("host 192.168.1.12 32000 1200 100");
+    log_d("Sample commands:");
+    log_d("** Reference signal 2Hz test **");
+    log_d("test 2hz 2x");
+    log_d("source all test");
+    log_d("host 192.168.1.12 32000 1200 100");
     
 /*    parser.parseLine("test 2hz 2x");
     sleep(1);
@@ -106,13 +104,13 @@ void EMGApp::enter() {
 }
 
 void EMGApp::leave() {
-    DBG("leave EMGApp");
+    log_d("leave EMGApp");
     emg.fini();
 }
 
 void EMGApp::process() {
     if ((Console.available() > 0) && (streaming)) {
-        DBG("Disabling streaming");
+        log_d("Disabling streaming");
         polling = false;
         streaming = false;
     }
@@ -133,7 +131,7 @@ void EMGApp::process() {
         produced += consumed;
         if (produced >= frame) {
             //int *data = (int *) (_buffer);
-            //DBG("Producing sequence[%d], size[%d], frame[%d]", sequence, produced, frame);
+            //log_d("Producing sequence[%d], size[%d], frame[%d]", sequence, produced, frame);
             packet.setSN(sequence++);
             packet.setPayload(_buffer,frame);
             packet.setTS(micros() / 15000);
@@ -149,7 +147,7 @@ void EMGApp::process() {
 /*
     if (runcommand) {
         runcommand = false;
-        DBG("Sending host command");
+        log_d("Sending host command");
         sendHost("192.168.1.12",32000,1200,100);
     }
   */  
@@ -177,7 +175,7 @@ void EMGApp::cmdDestHost() {
 }
 
 void EMGApp::sendHost(String _host,int remotePort, int frame, int delay) {
-    DBG("Configuring streaming to host, remote host[%s:%d], frame size[%d], delay %d ms", _host.c_str(), remotePort, frame, delay);
+    log_d("Configuring streaming to host, remote host[%s:%d], frame size[%d], delay %d ms", _host.c_str(), remotePort, frame, delay);
     
     remoteHost.fromString(_host);
     streaming = true;
@@ -189,10 +187,10 @@ void EMGApp::sendHost(String _host,int remotePort, int frame, int delay) {
     packet.setVersion(2);
     packet.setPT(96);
 
-    DBG("Setting buffer size[2000]");
+    log_d("Setting buffer size[2000]");
     emg.setBuffer(2000);
 
-    DBG("Starting streaming");
+    log_d("Starting streaming");
     emg.streaming(true);
 
 }
@@ -203,7 +201,7 @@ void EMGApp::cmdSignalHigh() {
 
     for (int i = 0; i < sizeof(lines) / sizeof(line); i++) {
         if (!strcasecmp(_signal.c_str(),lines[i].name)) {
-            DBG("Setting Signal[%s] High", lines[i].name);
+            log_d("Setting Signal[%s] High", lines[i].name);
             pinMode(lines[i].pin, OUTPUT);
             digitalWrite(lines[i].pin, HIGH);
         }
@@ -215,7 +213,7 @@ void EMGApp::cmdSignalLow() {
 
     for (int i = 0; i < sizeof(lines) / sizeof(line); i++) {
         if (!strcasecmp(_signal.c_str(),lines[i].name)) {
-            DBG("Setting Signal[%s] Low", lines[i].name);
+            log_d("Setting Signal[%s] Low", lines[i].name);
             pinMode(lines[i].pin, OUTPUT);
             digitalWrite(lines[i].pin, LOW);
         }
@@ -240,43 +238,43 @@ void EMGApp::cmdSwitchApp() {
 
 void EMGApp::cmdListApps() {
     BoardApp **_apps = apps();
-    DBG("List of available apps:");
+    log_d("List of available apps:");
     for (int i = 0; i < MAX_APPS; i++) {
         if (_apps[i]) 
-            DBG("App[%s]", _apps[i]->name());
+            log_d("App[%s]", _apps[i]->name());
     }
 }
 
 void EMGApp::cmdSetup() {
-    DBG("EMG Setup");
+    log_d("EMG Setup");
     emg.init();
 }
 
 void EMGApp::cmdReadData() {
-    DBG("EMG Read data");
+    log_d("EMG Read data");
 
     if (emg.readData(buffer)) {
-        DBG("Data found");
+        log_d("Data found");
         for (int i = 0; i < 9; i++) {
             double uV = buffer[i] / pow(2,23) * 2.4 * 1000000 - offset;
-            DBG("Channel %d, Buffer[%s], Value[%f]", i, String(buffer[i], HEX).c_str(), uV);
+            log_d("Channel %d, Buffer[%s], Value[%f]", i, String(buffer[i], HEX).c_str(), uV);
         }
     } else    
-        DBG("no data available");
+        log_d("no data available");
 }
 
 void EMGApp::cmdWrite() {
     String r = parser.getString(1);
     String value = parser.getString(2);
 
-    DBG("EMG Write[%d], value[%d]", r.toInt(), value.toInt());
+    log_d("EMG Write[%d], value[%d]", r.toInt(), value.toInt());
     emg.write(r.toInt(), value.toInt());
 }
 
 void EMGApp::cmdRead() {
     String r = parser.getString(1);
     int value = emg.read(r.toInt());
-    DBG("EMG Read[%d], value[%d]", r.toInt(), value);
+    log_d("EMG Read[%d], value[%d]", r.toInt(), value);
 }
 
 void EMGApp::cmdTest() {
@@ -315,7 +313,7 @@ void EMGApp::cmdGain() {
     } else if (gain.equalsIgnoreCase("12x")) {
         g = SerialEmg::GAIN_12X;
     } else {
-        DBG("unexpected gain[%s]", gain.c_str());
+        log_d("unexpected gain[%s]", gain.c_str());
         return;  
     }
 
@@ -351,11 +349,11 @@ void EMGApp::cmdSource() {
     } else if (source.equalsIgnoreCase("rldn")) {
         src = SerialEmg::SRC_RLD_NEG;
     } else {
-        DBG("unexpected source[%s]", source.c_str());
+        log_d("unexpected source[%s]", source.c_str());
         return;
     }
 
-    DBG("Setting src");
+    log_d("Setting src");
 
     if (channel.equalsIgnoreCase("all")) {
         for (int i = 0; i < emg.getMaxChannels(); i++)
@@ -370,11 +368,11 @@ void EMGApp::cmdEnable() {
     String channel = parser.getString(1);
 
     if (channel.equalsIgnoreCase("all")) {
-        DBG("Enabling channel[all]");
+        log_d("Enabling channel[all]");
         for (int i = 0; i < emg.getMaxChannels(); i++)
             emg.enable(i);
     } else {
-        DBG("Enabling channel[%d]", channel.toInt());
+        log_d("Enabling channel[%d]", channel.toInt());
         emg.enable(channel.toInt());
     }
 }
@@ -383,11 +381,11 @@ void EMGApp::cmdDisable() {
     String channel = parser.getString(1);
 
     if (channel.equalsIgnoreCase("all")) {
-        DBG("Disabling channel[all]");
+        log_d("Disabling channel[all]");
         for (int i = 0; i < emg.getMaxChannels(); i++)
             emg.disable(i);
     } else {
-        DBG("Disabling channel[%d]", channel.toInt());
+        log_d("Disabling channel[%d]", channel.toInt());
         emg.disable(channel.toInt());
     } 
 }
@@ -404,26 +402,26 @@ void EMGApp::cmdMode() {
         if (on) {
             String ip = parser.getString(3);
             int port = parser.getInt(4);
-            DBG("Starting data streaming[%s:%d]", ip.c_str(), port);
+            log_d("Starting data streaming[%s:%d]", ip.c_str(), port);
             telemetry.streaming_enable(ip, port);
             BufferProducer *buffer = emg.getBufferProducer();
-            DBG("Attaching buffer[0x%x]",buffer);
+            log_d("Attaching buffer[0x%x]",buffer);
             telemetry.attach(SEMG_CHANNEL0,buffer);
-            DBG("Enabling channel SEMG_CHANNEL0(1)");
+            log_d("Enabling channel SEMG_CHANNEL0(1)");
             telemetry.enable(SEMG_CHANNEL0);
         } else {
-            DBG("Stopping data streaming");
+            log_d("Stopping data streaming");
             telemetry.disable(SEMG_CHANNEL0);
         }
     } else if (mode.equalsIgnoreCase("go")) {
         bool on = parser.getBool(2);
         if (on) {
-            DBG("Starting acquisition");
+            log_d("Starting acquisition");
             emg.init();
             emg.setBuffer(1000);
             emg.streaming(true);
         } else {
-            DBG("Stopping acquisition");
+            log_d("Stopping acquisition");
             emg.streaming(false);
         }
     }
@@ -436,7 +434,7 @@ void EMGApp::cmdStatus() {
     emg.poll();
     BufferProducer *buffer = emg.getBufferProducer();
     int consumed = buffer->consume(_buffer,6000);
-    DBG("Status[%x], channel state[%x], available data[%d], consumed[%d], ticks[%d]", status, state, avail, consumed, millis());
+    log_d("Status[%x], channel state[%x], available data[%d], consumed[%d], ticks[%d]", status, state, avail, consumed, millis());
 }
 
 void EMGApp::cmdBuffer() {
@@ -444,21 +442,21 @@ void EMGApp::cmdBuffer() {
     int value = size.toInt();
 
     if (value >= 0 ) {
-        DBG("Setting buffer depth[%d]", value);
+        log_d("Setting buffer depth[%d]", value);
         emg.setBuffer(value);
     }
 }
 
 void EMGApp::cmdOffset() {
-    DBG("Offset");
+    log_d("Offset");
     String number = parser.getString(1);
 
     offset = number.toDouble();
-    DBG("DC Offset[%f]", offset);
+    log_d("DC Offset[%f]", offset);
 }
 
 void EMGApp::cmdSequence() {
-    DBG("Sequence");
+    log_d("Sequence");
     String command = parser.getString(1);
     String channel = parser.getString(2);
 
@@ -467,13 +465,13 @@ void EMGApp::cmdSequence() {
         _channel = channel.toInt();
 
         if ((_channel <= 0) || (_channel > emg.getMaxChannels())) {
-            ERR("Wrong channel number[%d]", _channel);
+            log_e("Wrong channel number[%d]", _channel);
             return;
         }
     }
 
     if (command.equalsIgnoreCase("burst")) {
-        DBG("Burst reading from channel[%d]", _channel);
+        log_d("Burst reading from channel[%d]", _channel);
         double avg = 0;
         for (int i = 0; i < 250; i++) {
             if (emg.readData(buffer)) {
@@ -482,14 +480,14 @@ void EMGApp::cmdSequence() {
                     avg = (uV + i * avg) / (i+1);
                 else
                     avg = uV;
-                DBG("%d, %d, %d, %f, %f", i, _channel, buffer[_channel], uV, avg);
+                log_d("%d, %d, %d, %f, %f", i, _channel, buffer[_channel], uV, avg);
             }
         }
     } else if (command.equalsIgnoreCase("temp")) {
         if (emg.readData(buffer)) {
             double uV = buffer[1] / pow(2,23) * 2.4 * 1000000;
             double temp = ((uV - 145300)/490) + 25;
-            DBG("uV[%f], temp[%f]", uV, temp);
+            log_d("uV[%f], temp[%f]", uV, temp);
         }
     }
 }
