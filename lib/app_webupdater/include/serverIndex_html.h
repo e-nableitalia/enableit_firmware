@@ -43,7 +43,7 @@ const char serverIndex[] PROGMEM = R"rawliteral(
                     return xhr;
                 },
                 success:function(d, s) {
-                    console.log('success!')
+                    console.log_i('success!')
                 },
                 error: function (a, b, c) {
                 }

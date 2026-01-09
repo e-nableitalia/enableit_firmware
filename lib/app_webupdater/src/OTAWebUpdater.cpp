@@ -8,7 +8,6 @@
 #include <SPIFFS.h>
 #include <Update.h>
 
-#include <BoardAppRegistrar.h>
 #include <Config.h>
 
 #include "OTAWebUpdaterApp.h"
@@ -234,11 +233,10 @@ String processor(const String& var)
   return String();
 }
 
-OTAWebUpdater otaWebUpdater;
-REGISTER_BOARD_APP(otaWebUpdater);
+BOARDAPP_INSTANCE(OTAWebUpdater);
 
 void OTAWebUpdater::enter(void) {
-    LOG("Activating OTA Web Update");
+    log_i("Activating OTA Web Update");
 
     server.on("/manager", HTTP_GET, [](AsyncWebServerRequest *request)
       {

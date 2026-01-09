@@ -12,16 +12,18 @@
 #include <Console.h>
 #include <BoardApp.h>
 
-#define STATE_OTAWEBUPDATER "otaweb"
+#define APP_OTAWEBUPDATER "otaweb"
+
+using namespace enableit;
 
 class OTAWebUpdater : public BoardApp {
     void enter();
     void leave() {
-        DBG("leave OTA Web Updater state");
+        log_d("leave OTA Web Updater state");
     }
 
     void process();
-    const char *name() { return STATE_OTAWEBUPDATER; }
+    const char *name() { return APP_OTAWEBUPDATER; }
 };
 
 #endif // OTAWEBUPDATER_APP_H
