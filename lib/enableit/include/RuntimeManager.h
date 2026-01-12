@@ -1,8 +1,12 @@
 #pragma once
 
+
 #include "Board.h"
 #include "BtServer.h"
 #include "Wifi.h"
+#include <memory>
+#include "FeatureRegistry.h"
+#include "ProtocolProcessor.h"
 
 #if defined(THINGSBOARD_SUPPORT)
 #include <WiFiClient.h>
@@ -32,6 +36,7 @@ struct BootConfig {
 
 namespace enableit {
 
+
 class RuntimeManager {
 public:
     RuntimeManager(Board& board);
@@ -49,6 +54,10 @@ public:
     void startProvisioningMode(const BootConfig& config);
     void stopAll(const BootConfig& config);
 
+    // Protocol two-phase init
+    void initProtocol(const BootConfig& config);
+    void registerFeature(Feature* feature);
+
     // State query
     bool wifiOn() const { return wifiOn_; }
     bool bleOn() const { return bleOn_; }
@@ -62,6 +71,10 @@ public:
 private:
     Board& board_;
     BtServer btServer_;
+
+    FeatureRegistry featureRegistry_;
+    std::unique_ptr<ProtocolProcessor> protocol_;
+
     bool wifiOn_ = false;
     bool bleOn_ = false;
     bool mdnsOn_ = false;
@@ -72,6 +85,23 @@ private:
     ThingsBoard tb_;
     bool thingsBoardOn_ = false;
 #endif
+};
+
+// BLEProtocolHandler skeleton
+class BLEProtocolHandler : public BleCharacteristicHandler {
+public:
+    explicit BLEProtocolHandler(ProtocolProcessor& processor);
+    void onWrite(BLECharacteristic* ch) override;
+    void onRead(BLECharacteristic* ch) override;
+    void onSubscribe() override {
+        log_i("BLEProtocolHandler: Client subscribed to characteristic");
+    }
+
+    void onUnsubscribe() override {
+        log_i("BLEProtocolHandler: Client unsubscribed from characteristic");
+    }
+private:
+    ProtocolProcessor& processor_;
 };
 
 extern RuntimeManager runtime;

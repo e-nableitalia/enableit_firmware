@@ -1,11 +1,9 @@
 #include "ProtocolProcessor.h"
 
 // Rename BLEMessageProcessor to ProtocolProcessor
-ProtocolProcessor::ProtocolProcessor(FeatureRegistry& registry, const String& systemInfoJson)
+ProtocolProcessor::ProtocolProcessor(FeatureRegistry& registry)
     : registry(registry)
 {
-    systemInfo.clear();
-    deserializeJson(systemInfo, systemInfoJson);
 }
 
 ProtocolVersion ProtocolProcessor::detectProtocol(const char* message) {

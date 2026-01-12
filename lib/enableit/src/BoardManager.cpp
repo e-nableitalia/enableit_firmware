@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <mutex>
 #include <BoardManager.h>
+#include <SystemInfoProvider.h>
 #include <Config.h>
 #include <Console.h>
 
@@ -11,13 +12,6 @@
 
 namespace enableit
 {
-
-    extern "C"
-    {
-        extern const BoardAppRegistrar __start_board_apps[];
-        extern const BoardAppRegistrar __stop_board_apps[];
-    }
-
     std::recursive_mutex state_mtx;
 
 #if !defined(NO_GLOBAL_INSTANCES)
@@ -45,6 +39,9 @@ namespace enableit
         log_i("Initializing Board Manager...");
         log_i("BoardManager Init");
         Console.init(115200, true);
+        systeminfo.init(eBoard.getBoard(), config);
+        log_i("Board begin");
+        board.begin();
         log_i("Registering built-in apps");
         addApp(&noop);
         addApp(&reboot);

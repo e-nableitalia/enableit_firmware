@@ -1,3 +1,6 @@
+#include <memory>
+#include <SystemInfoProvider.h>
+#include <ProtocolProcessor.h>
 #include "RuntimeManager.h"
 #include <WiFi.h>
 #include <WifiHal.h>
@@ -5,6 +8,7 @@
 #if defined(INSIGHTS_SUPPORT)
 #include <Insights.h>
 #endif
+
 
 #define WIFI_CHECK_DELAY            500 // 500ms delay
 #define MAX_WIFI_CONNECT_ATTEMPTS   20
@@ -140,6 +144,7 @@ void RuntimeManager::disableBle() {
     bleOn_ = false;
 }
 
+
 void RuntimeManager::startNormalMode(const BootConfig& config) {
     enableBle();
     enableWifi(config);
@@ -196,6 +201,50 @@ bool RuntimeManager::thingsBoardConnected() const {
     return const_cast<decltype(tb_)&>(tb_).connected();
 }
 #endif
+
+// --- Protocol two-phase init ---
+void RuntimeManager::initProtocol(const BootConfig& config) {
+    // Retrieve system info JSON from Board or runtime context
+
+    // Ensure systemInfoJson is copied, not referenced
+    protocol_ = std::unique_ptr<ProtocolProcessor>(
+        new ProtocolProcessor(
+            featureRegistry_
+        )
+    );
+
+    // Register BLE protocol channel (using Protocol RX UUID)
+    btServer_.registerCharacteristic(
+        BleUuids::Protocol::RX,
+        BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY,
+        new BLEProtocolHandler(*protocol_)
+    );
+}
+
+void RuntimeManager::registerFeature(Feature* feature) {
+    featureRegistry_.registerFeature(feature);
+}
+
+// --- BLEProtocolHandler implementation ---
+BLEProtocolHandler::BLEProtocolHandler(ProtocolProcessor& processor)
+    : processor_(processor) {}
+
+void BLEProtocolHandler::onWrite(BLECharacteristic* ch) {
+    if (!ch) return;
+    std::string value = ch->getValue();
+    if (value.empty()) return;
+    String response;
+    processor_.process(value.c_str(), response);
+    ch->setValue(response.c_str());
+    // Always notify if PROPERTY_NOTIFY is set (no getSubscribedCount available)
+    ch->notify();
+}
+
+void BLEProtocolHandler::onRead(BLECharacteristic* ch) {
+    if (!ch) return;
+    // For demonstration, return a static status or last response if you want to cache it
+    ch->setValue("{\"status\":\"ok\"}");
+}
 
 // Setup RuntimeManager
 RuntimeManager runtime(board);

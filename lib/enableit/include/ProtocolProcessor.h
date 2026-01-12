@@ -9,7 +9,7 @@ enum ProtocolVersion { V1_LEGACY, V2_JSON };
 
 class ProtocolProcessor {
 public:
-    ProtocolProcessor(FeatureRegistry& registry, const String& systemInfoJson);
+    ProtocolProcessor(FeatureRegistry& registry);
 
     void process(const char* message, String& response);
     void processV1(const char* message, String& response);
@@ -17,8 +17,7 @@ public:
 
 private:
     FeatureRegistry& registry;
-    StaticJsonDocument<512> systemInfo;
-    StaticJsonDocument<512> jsonMsg;
-    StaticJsonDocument<512> respDoc;
+    JsonDocument jsonMsg;
+    JsonDocument respDoc;
     ProtocolVersion detectProtocol(const char* message);
 };

@@ -21,8 +21,6 @@
 
 #include <CommandParser.h>
 
-#define FWREV    "1.0." __DATE__ "." __TIME__
-
 #define BUTTON_PIN  GPIO_NUM_0
 //#define LED_PIN     GPIO_NUM_25
 #define WIFI_CHECK_DELAY            500 // 500ms delay

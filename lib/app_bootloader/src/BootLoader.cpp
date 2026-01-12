@@ -5,6 +5,7 @@
 #include <WifiHal.h>
 #include <Config.h>
 #include <RuntimeManager.h>
+#include "SystemInfoProvider.h"
 
 #define CMD_HELP    "* help - show this help"
 #define CMD_INFO    "* info - show active configuration"
@@ -40,27 +41,9 @@ void BootLoader::init(enableit::BoardApp *s) {
     }
     log_d("done");
 
-    OUT("Firmware Rev %s", FWREV);
+    // Dump system info using SystemInfoProvider
+    systeminfo.dump();
 
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
- 
-    OUT("HwInfo:");
-  
-    OUT("%d cores Wifi%s%s, %d Mhz", chip_info.cores, (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-                (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "", ESP.getCpuFreqMHz());
-    OUT("Silicon revision: %d", chip_info.revision);
-    OUT("%dMB %s flash, Memory %d", spi_flash_get_chip_size()/(1024*1024),
-                (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embeded" : "external", ESP.getPsramSize());
- 
-    //get chip id
-    String chipId = String((uint32_t)ESP.getEfuseMac(), HEX);
-    chipId.toUpperCase();
- 
-    OUT("SDK: %s, Chip: %s, Chip id: %s", ESP.getSdkVersion(), ESP.getChipModel(), chipId.c_str());
-    OUT("Fw Checksum: %s", ESP.getSketchMD5().c_str());
-
-    board.begin();
     display.println("eNable.it - Bionic Platform");
     display.println("Firmware Rev " FWREV);
 
@@ -114,7 +97,7 @@ void BootLoader::init(enableit::BoardApp *s) {
     bootCfg.mdnsHostname = "esp32"; // or config.mdnsHostname if available
 
     if (config.wifi) {
-        runtime.enableWifi(bootCfg);
+        runtime.startNormalMode(bootCfg);
 
 #if THINGSBOARD_SUPPORT
         if (runtime.wifiOn() && !bootCfg.deviceid.isEmpty()) {
