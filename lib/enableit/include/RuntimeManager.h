@@ -57,6 +57,8 @@ public:
     // Protocol two-phase init
     void initProtocol(const BootConfig& config);
     void registerFeature(Feature* feature);
+    void unregisterFeature(const char* name);
+    Feature* getFeature(const char* name);
 
     // State query
     bool wifiOn() const { return wifiOn_; }

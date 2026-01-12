@@ -225,6 +225,14 @@ void RuntimeManager::registerFeature(Feature* feature) {
     featureRegistry_.registerFeature(feature);
 }
 
+void RuntimeManager::unregisterFeature(const char* name) {
+    featureRegistry_.unregisterFeature(name);
+}
+
+Feature* RuntimeManager::getFeature(const char* name) {
+    return featureRegistry_.getFeature(name);
+}
+
 // --- BLEProtocolHandler implementation ---
 BLEProtocolHandler::BLEProtocolHandler(ProtocolProcessor& processor)
     : processor_(processor) {}

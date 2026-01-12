@@ -99,7 +99,7 @@ This approach enables highly customizable and maintainable firmware, where new f
 
 ## License
 
-Creative Commons Attribution-NonCommercial 4.0 International Public License
+Creative Commons Attribution-NonCommercial-shareAlike 4.0 International Public License (CC BY-NC-SA 4.0)
 
 For more information, visit [https://e-nable.it/](https://e-nable.it/)
 
