@@ -8,16 +8,16 @@ public:
     FeatureRegistry() : count(0) {}
 
     // Register a feature by pointer (does not take ownership)
-    void registerFeature(Feature* feature) {
+    void registerFeature(FeatureBase* feature) {
         if (!feature || count >= MAX_FEATURES) return;
         features[count++] = feature;
     }
 
     // Lookup a feature by name (const char*)
-    Feature* getFeature(const char* name) const {
+    FeatureBase* getFeature(const char* name) const {
         for (size_t i = 0; i < count; ++i) {
             if (strcmp(features[i]->name(), name) == 0) {
-                return features[i];
+            return features[i];
             }
         }
         return nullptr;
@@ -42,6 +42,6 @@ public:
 
 private:
     static constexpr size_t MAX_FEATURES = 8;
-    Feature* features[MAX_FEATURES];
+    FeatureBase* features[MAX_FEATURES];
     size_t count;
 };

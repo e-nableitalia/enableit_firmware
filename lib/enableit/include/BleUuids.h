@@ -3,24 +3,19 @@
 namespace enableit {
 namespace BleUuids {
 
-constexpr char VENDOR_BASE[] = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c000000";
+constexpr char SERVICE[] = "00000000-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8"; // Base service UUID
 
-namespace Console {
-  constexpr char SERVICE[] = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c010000";
-  constexpr char RX[]      = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c010001";
-  constexpr char TX[]      = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c010002";
-}
-
-namespace Protocol {
-  constexpr char SERVICE[] = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c020000";
-  constexpr char RX[]      = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c020001";
-  constexpr char TX[]      = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c020002";
-}
-
-namespace Ota {
-  constexpr char SERVICE[] = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c030000";
-  constexpr char CTRL[]    = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c030001";
-  constexpr char DATA[]    = "a8f1c2e0-9d3b-4c6e-bf12-5a9e8c030002";
+namespace Characteristic {
+  constexpr char CONSOLE[]      = "00000100-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  constexpr char PROTOCOL[]     = "00000200-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  constexpr char OTA[]          = "00000300-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  
+  constexpr char CONSOLE_RX[]   = "00010100-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  constexpr char CONSOLE_TX[]   = "00010200-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  constexpr char PROTOCOL_RX[]  = "00020100-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  constexpr char PROTOCOL_TX[]  = "00020200-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  constexpr char OTA_CTRL[]     = "00030100-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
+  constexpr char OTA_DATA[]     = "00030200-8c9e-a95a-12bf-6e4c-3b9d-e0c2f1a8";
 }
 
 } // namespace BleUuids

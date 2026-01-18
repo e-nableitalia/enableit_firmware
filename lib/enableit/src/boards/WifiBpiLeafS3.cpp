@@ -1,6 +1,8 @@
 #include <boards/WifiBpiLeafS3.h>
 #include <Arduino.h>
 
+#ifdef ARDUINO_BPI_LEAF_S3
+
 namespace enableit {
 
 bool WifiBpiLeafS3::startAp(const WifiConfig&) {
@@ -23,3 +25,5 @@ void WifiBpiLeafS3::stop() {
 }
 
 } // namespace enableit
+
+#endif

@@ -32,6 +32,8 @@ public:
     bool addAppNoLock(BoardApp *state);
     bool hasApp(const char *state_name);
 
+    void resetApps();
+
     void panic(int code, const char *description);
 
     BoardApp **getApps();

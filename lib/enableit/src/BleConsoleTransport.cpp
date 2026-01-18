@@ -1,22 +1,22 @@
 #include <BleConsoleTransport.h>
+#include <BtServer.h>
 #include <BleUuids.h>
 
 namespace enableit {
 
 // BleConsoleTransport implementation
 BleConsoleTransport::BleConsoleTransport(
-    BtServer& btServer,
     const std::string& rxCharUUID,
     const std::string& txCharUUID
 )
-    : btServer_(btServer), rxUuid_(rxCharUUID), txUuid_(txCharUUID), ConsoleTransport("BLE Console")
+    : rxUuid_(rxCharUUID), txUuid_(txCharUUID), ConsoleTransport("BLE Console")
 {
-    btServer_.registerCharacteristic(
+    BtServer::instance().registerCharacteristic(
         rxUuid_.c_str(),
         /*PROPERTY_WRITE*/ 0x08 | /*PROPERTY_WRITE_NR*/ 0x04,
         this
     );
-    btServer_.registerCharacteristic(
+    BtServer::instance().registerCharacteristic(
         txUuid_.c_str(),
         /*PROPERTY_NOTIFY*/ 0x10,
         nullptr
@@ -55,7 +55,7 @@ int BleConsoleTransport::peek() {
 size_t BleConsoleTransport::write(uint8_t c) {
     if (!subscribed_) return 0;
     uint8_t buf[1] = {c};
-    if (btServer_.notify(txUuid_.c_str(), buf, 1)) return 1;
+    if (BtServer::instance().notify(txUuid_.c_str(), buf, 1)) return 1;
     return 0;
 }
 

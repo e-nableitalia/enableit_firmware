@@ -41,7 +41,7 @@ void KineticHandApp::process() {
 //        delay(50);  // Delay to prevent rapid multiple clicks
 //    }
 
-#ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
+#ifdef ARDUINO_M5STACK_ATOMS3
     // Clear the screen and display pressure bar and battery voltage
     display.setTextColor(Display::Color::BLUE);
     //display.setRotation(3);

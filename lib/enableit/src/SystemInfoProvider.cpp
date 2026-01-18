@@ -86,6 +86,74 @@ const JsonDocument& SystemInfoProvider::view() const
 	return systemInfo;
 }
 
+void SystemInfoProvider::addCustomInfo(const String& section, const String& key, const JsonVariantConst& value)
+{
+	if (!initialized)
+	{
+		return;
+	}
+	JsonObject root = systemInfo.as<JsonObject>();
+	JsonObject sectionObj;
+	if (root.containsKey(section))
+	{
+		sectionObj = root[section].as<JsonObject>();
+	}
+	else
+	{
+		sectionObj = root.createNestedObject(section);
+	}
+	sectionObj[key] = value;
+}
+
+void SystemInfoProvider::addCustomInfo(const String& section, const String& key)
+{
+	if (!initialized)
+	{
+		return;
+	}
+	JsonObject root = systemInfo.as<JsonObject>();
+	JsonObject infoObj;
+	if (root.containsKey(section))
+	{
+		infoObj = root[section].as<JsonObject>();
+	}
+	else
+	{
+		infoObj = root.createNestedObject(section);
+	}
+	infoObj[key];
+}
+
+void SystemInfoProvider::removeCustomInfo(const String& section, const String& key)
+{
+	if (!initialized)
+	{
+		return;
+	}
+	JsonObject root = systemInfo.as<JsonObject>();
+	if (root.containsKey(section))
+	{
+		JsonObject sectionObj = root[section].as<JsonObject>();
+		if (sectionObj.containsKey(key))
+		{
+			sectionObj.remove(key);
+		}
+	}
+}
+
+void SystemInfoProvider::clearCustomInfo(const String& section)
+{
+	if (!initialized)
+	{
+		return;
+	}
+	JsonObject root = systemInfo.as<JsonObject>();
+	if (root.containsKey(section))
+	{
+		root.remove(section);
+	}
+}
+
 SystemInfoProvider systeminfo;
 
 } // namespace enableit

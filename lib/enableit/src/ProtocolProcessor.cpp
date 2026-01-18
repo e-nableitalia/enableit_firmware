@@ -7,6 +7,7 @@ ProtocolProcessor::ProtocolProcessor(FeatureRegistry& registry)
 }
 
 ProtocolVersion ProtocolProcessor::detectProtocol(const char* message) {
+    // { is not allowed as starting char in v1 messages, so use it to detect v2 JSON messages
     if (message && message[0] == '{') {
         return V2_JSON;
     }
@@ -33,6 +34,7 @@ void ProtocolProcessor::process(const char* message, String& response) {
 }
 
 void ProtocolProcessor::processV1(const char* message, String& response) {
+    log_i("Processing V1 message: %s", message);
     String msgStr(message);
     int sep = msgStr.indexOf(':');
     String target, cmd;
@@ -47,9 +49,10 @@ void ProtocolProcessor::processV1(const char* message, String& response) {
         response = "ERROR: No target specified";
         return;
     }
-    Feature* feature = registry.getFeature(target.c_str());
-    if (feature) {
-        feature->handleV1(cmd, response);
+    FeatureBase* feature = registry.getFeature(target.c_str());
+    if (feature && feature->version() == FeatureVersion::V1) {
+        FeatureV1* v1feature = static_cast<FeatureV1*>(feature);
+        v1feature->handle(cmd, response);
     } else {
         response = "ERROR: Feature '" + target + "' not found";
     }
@@ -64,10 +67,11 @@ void ProtocolProcessor::processV2(JsonObject& msg, String& response) {
         return;
     }
     String target = msg["target"].as<String>();
-    Feature* feature = registry.getFeature(target.c_str());
-    if (feature) {
+    FeatureBase* feature = registry.getFeature(target.c_str());
+    if (feature && feature->version() == FeatureVersion::V2) {
+        FeatureV2* v2feature = static_cast<FeatureV2*>(feature);
         JsonObject respObj = respDoc.to<JsonObject>();
-        feature->handleV2(msg, respObj);
+        v2feature->handle(msg, respObj);
         serializeJson(respObj, response);
     } else {
         respDoc["status"] = "error";

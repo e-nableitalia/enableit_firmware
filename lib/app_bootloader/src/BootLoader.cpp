@@ -208,7 +208,19 @@ void BootLoader::cmdRun() {
 void BootLoader::cmdList() {
     OUT("** List Apps **");
 
-    OUT("** TBA **");
+    if (!state) {
+        OUT("No application state available.");
+        return;
+    }
+
+    BoardApp **apps = state->apps();
+
+    OUT("Available applications:");
+    for (int i = 0; i < MAX_APPS; i++) {
+        if (apps[i] != nullptr) {
+            OUT("* %s", apps[i]->name());
+        }
+    }
 }
 
 

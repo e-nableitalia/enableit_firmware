@@ -9,18 +9,26 @@
 
 class SensorProcessor {
 public:
-   virtual void run();
-   virtual uint16_t getAvg();
-   
+   using UpdateFn = void (*)(int position, void* ctx);
+
+   virtual void run() = 0;
+   virtual uint16_t getAvg() = 0;
+
+   // used to keep debounce logic decoupled from specific processing
+   virtual void setUpdateCallback(UpdateFn fn, void* ctx) {
+      updateFn = fn;
+      updateCtx = ctx;
+   }
+
+protected:
+   UpdateFn updateFn = nullptr;
+   void* updateCtx = nullptr;
 };
 
 class RealSensorProcessor : public SensorProcessor {
 public:
-   using UpdateFn = void (*)(int position, void* ctx);
 
    RealSensorProcessor(int offset, int threshold);
-
-   void setUpdateCallback(UpdateFn fn, void* ctx);
 
    void run() override;
    uint16_t getAvg() override;
@@ -34,8 +42,6 @@ public:
    int count = 0;
    int offset;
    int threshold;
-   UpdateFn updateFn = nullptr;
-   void* updateCtx = nullptr;
 };
 
 

@@ -1,6 +1,6 @@
 #include <boards/BpiLeafS3.h>
 
-#ifdef ENABLEIT_BOARD_BPI_LEAF_S3
+#ifdef ARDUINO_BPI_LEAF_S3
 
 namespace enableit {
 

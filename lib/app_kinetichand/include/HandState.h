@@ -9,7 +9,7 @@
 #include <Console.h>
 #include <DeltaTime.h>
 
-#ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
+#ifdef ARDUINO_M5STACK_ATOMS3
 #define PRESSURE_PIN    G5
 #define SERVO_PIN       G8
 #else

@@ -1,17 +1,20 @@
 #include <cstring>
 #include <ArduinoJson.h>
 #include <Board.h>
-#include "MovementFeature.h"
+#include "MovementFeature.h" // for compatibility
+#include "MovementCommandDispatcher.h"
 
 #define MOVEMENT_DISPLAY_LINE 2
 
-MovementFeature::MovementFeature(Hand* hand)
-    : hand_(hand)
+
+MovementCommandDispatcher::MovementCommandDispatcher(Hand* hand)
+    : enableit::BleV1CommandDispatcher( MOVEMENT_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE ),
+      hand_(hand)
 {
     hmf_ = new HandMovementFactory(hand_);
 }
 
-void MovementFeature::handleV1(const String& cmd, String& response) {
+void MovementCommandDispatcher::handle(const String& cmd, String& response) {
     // V1: movement:calibration, movement:scratch, movement:come, movement:<name>
     log_i("Handling V1 movement command: %s", cmd.c_str());
     String line = "Movement: " + cmd;
@@ -19,14 +22,7 @@ void MovementFeature::handleV1(const String& cmd, String& response) {
     startMovement(cmd, response);
 }
 
-void MovementFeature::handleV2(const JsonObjectConst& msg, JsonObject& response) {
-    // V2: { target: "movement", action: "start", movement: "name" }
-    log_i("Handling V2 movement command");
-    response["status"] = "error";
-    response["error"] = "Invalid command, v2 movement commands are not supported yet";
-}
-
-void MovementFeature::run() {
+void MovementCommandDispatcher::run() {
     if (handMovement_ != nullptr) {
         handMovement_->run();
     }
@@ -35,14 +31,14 @@ void MovementFeature::run() {
     }
 }
 
-bool MovementFeature::isIdle() const {
+bool MovementCommandDispatcher::isIdle() const {
     if (handMovement_ != nullptr) {
         return handMovement_->isFinished();
     }
     return true;
 }
 
-void MovementFeature::startMovement(String cmd, String &response) {
+void MovementCommandDispatcher::startMovement(String cmd, String &response) {
    hand_->setCalibration(false);
     if (handMovement_ != nullptr) {
         delete handMovement_;
@@ -79,7 +75,7 @@ void MovementFeature::startMovement(String cmd, String &response) {
     response = "OK: movement started";
 }
 
-void MovementFeature::calibration() {
+void MovementCommandDispatcher::calibration() {
     hand_->setCalibration(true);
     HandMovementFactory* calibrationHmf = new HandMovementFactory(hand_);
     seq_ = new Sequence(0);
@@ -89,7 +85,7 @@ void MovementFeature::calibration() {
     delete calibrationHmf;
 }
 
-void MovementFeature::scratch() {
+void MovementCommandDispatcher::scratch() {
     HandMovementFactory* hmf = new HandMovementFactory(hand_);
     seq_ = new Sequence(0);
     seq_->addMovement(hmf->scratchOpen(), 600);
@@ -98,7 +94,7 @@ void MovementFeature::scratch() {
     delete hmf;
 }
 
-void MovementFeature::come() {
+void MovementCommandDispatcher::come() {
     HandMovementFactory* hmf = new HandMovementFactory(hand_);
     seq_ = new Sequence(5);
     seq_->addMovement(hmf->comeOpen(), 500);

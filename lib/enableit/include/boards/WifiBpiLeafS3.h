@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef ARDUINO_BPI_LEAF_S3
+
 #include <Wifi.h>
 #include <WiFiHal.h>
 
@@ -16,3 +18,5 @@ public:
 };
 
 } // namespace enableit
+
+#endif

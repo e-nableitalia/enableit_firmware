@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
+#ifdef ARDUINO_M5STACK_ATOMS3
 
 #include <M5Unified.h>
 #include <Arduino.h>

@@ -1,10 +1,12 @@
 #include <memory>
 #include <SystemInfoProvider.h>
 #include <ProtocolProcessor.h>
+#include <BtServer.h>
 #include "RuntimeManager.h"
 #include <WiFi.h>
 #include <WifiHal.h>
 #include <ESPmDNS.h>
+#include <BleUuids.h>
 #if defined(INSIGHTS_SUPPORT)
 #include <Insights.h>
 #endif
@@ -129,29 +131,34 @@ void RuntimeManager::disableWifi(const BootConfig& config) {
     wifiOn_ = false;
 }
 
-bool RuntimeManager::enableBle() {
+bool RuntimeManager::enableBle(String name, String uuid) {
     if (bleOn_) return true;
-    // BtServer is started in constructor; if you need to restart, add log_iic here
-    btServer_.init();
+    log_d("Activating BLE");
+    if (uuid.isEmpty()) {
+        // use default service UUID
+        uuid = BleUuids::SERVICE;
+    }
+    // BtServer is started in constructor; if you need to restart, add logic here
+    BtServer::instance().init(name, uuid);
     bleOn_ = true;
     return true;
 }
 
 void RuntimeManager::disableBle() {
     if (!bleOn_) return;
-    btServer_.end();
+    BtServer::instance().end();
     // If BtServer supports stopping, call it here
     bleOn_ = false;
 }
 
 
 void RuntimeManager::startNormalMode(const BootConfig& config) {
-    enableBle();
+    enableBle(config.bleDeviceName, config.bleServiceUuid);
     enableWifi(config);
 }
 
 void RuntimeManager::startProvisioningMode(const BootConfig& config) {
-    enableBle();
+    enableBle(config.bleDeviceName, config.bleServiceUuid);
     // For provisioning, you may want AP or STA off; here we disable WiFi
     disableWifi(config);
 }
@@ -203,25 +210,39 @@ bool RuntimeManager::thingsBoardConnected() const {
 #endif
 
 // --- Protocol two-phase init ---
-void RuntimeManager::initProtocol(const BootConfig& config) {
-    // Retrieve system info JSON from Board or runtime context
+void RuntimeManager::initProtocols(int count, const BLEConfig config[]) {
 
-    // Ensure systemInfoJson is copied, not referenced
     protocol_ = std::unique_ptr<ProtocolProcessor>(
         new ProtocolProcessor(
             featureRegistry_
         )
     );
 
-    // Register BLE protocol channel (using Protocol RX UUID)
-    btServer_.registerCharacteristic(
-        BleUuids::Protocol::RX,
-        BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY,
-        new BLEProtocolHandler(*protocol_)
-    );
+    BLEProtocolHandler* handler = new BLEProtocolHandler(*protocol_);
+    // Register BLE protocol channel (using given configs)
+    for (int i = 0; i < count; ++i) {
+        const BLEConfig& cfg = config[i];
+        if (cfg.uuid.length() > 0) {
+            log_i("Registering BLE characteristic UUID[%s] with properties[0x%08X]", cfg.uuid.c_str(), cfg.properties);
+            BtServer::instance().registerCharacteristic(
+                cfg.uuid.c_str(),
+                cfg.properties,
+                handler
+            );
+        }
+    }
 }
 
-void RuntimeManager::registerFeature(Feature* feature) {
+void RuntimeManager::registerBleCommandDispatcher(BleCommandDispatcher *c) {
+    if (c)
+        c->init();   
+}
+
+void RuntimeManager::startBle() {
+    BtServer::instance().advertising();
+}
+
+void RuntimeManager::registerFeature(FeatureBase* feature) {
     featureRegistry_.registerFeature(feature);
 }
 
@@ -229,7 +250,7 @@ void RuntimeManager::unregisterFeature(const char* name) {
     featureRegistry_.unregisterFeature(name);
 }
 
-Feature* RuntimeManager::getFeature(const char* name) {
+FeatureBase* RuntimeManager::getFeature(const char* name) {
     return featureRegistry_.getFeature(name);
 }
 

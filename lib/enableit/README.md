@@ -39,7 +39,7 @@ To support a new hardware board, you should:
    Define a global instance of your board class and expose it as `board` (see the example in `include/Board.h`).
 
 4. **Enable Board Selection**  
-   Use preprocessor macros (e.g., `ENABLEIT_BOARD_M5STACK_ATOMS3`) to select the appropriate board implementation at compile time.
+   Use preprocessor macros (e.g., `ARDUINO_M5STACK_ATOMS3`) to select the appropriate board implementation at compile time.
 
 5. **Example**  
    ```cpp

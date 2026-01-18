@@ -6,7 +6,7 @@
 #include <Config.h>
 #include "PressureApp.h"
 
-#ifdef ENABLEIT_BOARD_M5STACK_ATOMS3
+#ifdef ARDUINO_M5STACK_ATOMS3
 #define PRESSURE_PIN    G5
 #else
 #define PRESSURE_PIN    GPIO_NUM_8

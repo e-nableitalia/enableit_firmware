@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#ifdef ENABLEIT_BOARD_XIAO_ESP32S3
+#ifdef ARDUINO_XIAO_ESP32S3
 #include <BoardManager.h>
 #endif
 
@@ -45,7 +45,7 @@ void setup() {
   Serial.println("Delaying for 3s...");
   delay(3000);
 
-  #ifdef ENABLEIT_BOARD_XIAO_ESP32S3
+  #ifdef ARDUINO_XIAO_ESP32S3
   //ENABLEIT_BOOT(APP_BOOT);
   Serial.println("Board initialized");
   delay(1000);

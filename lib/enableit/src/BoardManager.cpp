@@ -117,6 +117,17 @@ namespace enableit
         return false;
     }
 
+    void BoardManager::resetApps()
+    {
+        std::lock_guard<std::recursive_mutex> lck(state_mtx);
+        for (int i = 0; i < MAX_APPS; i++)
+        {
+            if (apps[i] != currentApp) {
+                apps[i] = nullptr;
+            }
+        }
+    }
+
     void BoardManager::loop()
     {
         // log_d("board loop");

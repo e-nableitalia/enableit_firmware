@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <Console.h>
 #include <WiFi.h>
-#include <BoardAppRegistrar.h>
 #include <HttpsOTAUpdate.h>
 #include "OTAUpdateApp.h"
 #include <Config.h>
@@ -12,61 +11,60 @@ static HttpsOTAStatus_t otastatus;
 
 static bool otainit = false;
 
-OTAUpdateApp otaUpdateApp;
-REGISTER_BOARD_APP(otaUpdateApp);
+BOARDAPP_INSTANCE(OTAUpdateApp);
 
 void HttpEvent(HttpEvent_t *event)
 {
     switch(event->event_id) {
         case HTTP_EVENT_ERROR:
-            DBG("Http Event Error");
+            log_d("Http Event Error");
             break;
         case HTTP_EVENT_ON_CONNECTED:
-            DBG("Http Event On Connected");
+            log_d("Http Event On Connected");
             break;
         case HTTP_EVENT_HEADER_SENT:
-            DBG("Http Event Header Sent");
+            log_d("Http Event Header Sent");
             break;
         case HTTP_EVENT_ON_HEADER:
-            DBG("Http Event On Header, key=%s, value=%s\n", event->header_key, event->header_value);
+            log_d("Http Event On Header, key=%s, value=%s\n", event->header_key, event->header_value);
             break;
         case HTTP_EVENT_ON_DATA:
             break;
         case HTTP_EVENT_ON_FINISH:
-            DBG("Http Event On Finish");
+            log_d("Http Event On Finish");
             break;
         case HTTP_EVENT_DISCONNECTED:
-            DBG("Http Event Disconnected");
+            log_d("Http Event Disconnected");
             break;
     }
 }
 
 void OTAInit() {
-    DBG("Starting OTA Update");
+    log_d("Starting OTA Update");
     HttpsOTA.onHttpEvent(HttpEvent);
     HttpsOTA.begin(config.otaurl.c_str(), nullptr, true); 
     otainit = true;
 }
 
 void OTAUpdateApp::enter() {
-    DBG("Entering in OTA Update state");
+    log_d("Entering in OTA Update state");
     otainit = false;
 }
 void OTAUpdateApp::leave() {
-    DBG("Leaving boot Loader state");
+    log_d("Leaving boot Loader state");
 }
 
 void OTAUpdateApp::process() {
-    //DBG("Called process in BootLoader state");
+    //log_d("Called process in BootLoader state");
     if (!otainit)
         OTAInit();
     else {
         otastatus = HttpsOTA.status();
         if(otastatus == HTTPS_OTA_SUCCESS) { 
-            DBG("Firmware written successfully. Rebooting device");
+            log_d("Firmware written successfully. Rebooting device");
             changeApp(STATE_REBOOT);
         } else if(otastatus == HTTPS_OTA_FAIL) { 
-            DBG("Firmware Upgrade Fail");
+            log_d("Firmware Upgrade Fail");
             changeApp(APP_BOOT);
         }
     }

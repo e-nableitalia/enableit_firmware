@@ -11,17 +11,29 @@
 #include "BleCharacteristicHandler.h"
 #include "BleUuids.h"
 
-#define SERVICE_UUID        "89d60870-9908-4472-8f8c-e5b3e6573cd1"
-
 namespace enableit {
 
 class BtServer {
 public:
     static constexpr size_t BLE_TX_MAX = 180;
 
-    BtServer();
+    struct CharBinding {
+        BLECharacteristic* characteristic;
+        BleCharacteristicHandler* handler;
+        bool notifyEnabled;
+    };
 
-    void init();
+    // Singleton accessor
+    static BtServer& instance();
+
+    // Delete copy/move
+    BtServer(const BtServer&) = delete;
+    BtServer& operator=(const BtServer&) = delete;
+
+    // Server init with service UUID
+    void init(String name, String uuid);
+
+    void advertising();
 
     void end();
 
@@ -35,16 +47,15 @@ public:
     // Safe async notify by UUID
     bool notify(const char* uuid, const uint8_t* data, size_t len);
 
+    // Get CharBinding by UUID string key, or nullptr if not found
+    CharBinding* getCharBinding(const std::string& uuid);
+
     // BLE core members
     BLEServer* server_ = nullptr;
     BLEService* service_ = nullptr;
 
 private:
-    struct CharBinding {
-        BLECharacteristic* characteristic;
-        BleCharacteristicHandler* handler;
-        bool notifyEnabled;
-    };
+    BtServer(); // Make constructor private
 
     std::unordered_map<std::string, CharBinding> bindings_;
 
@@ -58,8 +69,8 @@ private:
 
     class CharacteristicCallback;
     class ServerCallback;
+    String deviceName_;
+    String serviceUuid_;
 };
-
-extern BtServer btserver;
 
 } // namespace enableit

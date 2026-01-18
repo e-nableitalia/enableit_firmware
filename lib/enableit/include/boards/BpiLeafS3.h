@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ENABLEIT_BOARD_BPI_LEAF_S3
+#ifdef ARDUINO_BPI_LEAF_S3
 
 #include <Arduino.h>
 #include <Board.h>

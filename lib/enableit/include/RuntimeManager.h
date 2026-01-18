@@ -2,11 +2,11 @@
 
 
 #include "Board.h"
-#include "BtServer.h"
 #include "Wifi.h"
 #include <memory>
 #include "FeatureRegistry.h"
 #include "ProtocolProcessor.h"
+#include "BleCommandDispatcher.h"
 
 #if defined(THINGSBOARD_SUPPORT)
 #include <WiFiClient.h>
@@ -31,7 +31,15 @@ struct BootConfig {
     String thingsboard;
     String devicetoken;
     String mdnsHostname = "esp32";
+    String bleDeviceName = "eNableIt board";
+    String bleServiceUuid = "";
     // Add other fields as needed
+};
+
+// BLEConfig: configuration for BLE characteristics
+struct BLEConfig {
+    uint32_t properties = 0; // Bitmask of properties (read, write, notify, etc.)
+    String uuid;              // UUID for characteristic
 };
 
 namespace enableit {
@@ -45,20 +53,25 @@ public:
     bool enableWifi(const BootConfig& config);
     void disableWifi(const BootConfig& config);
 
-    // BLE control (policy)
-    bool enableBle();
-    void disableBle();
-
     // Combined modes (helper di policy)
     void startNormalMode(const BootConfig& config);
     void startProvisioningMode(const BootConfig& config);
     void stopAll(const BootConfig& config);
 
-    // Protocol two-phase init
-    void initProtocol(const BootConfig& config);
-    void registerFeature(Feature* feature);
+    // BLE control (policy) with service UUID
+    bool enableBle(String name, String uuid);
+    void startBle();
+    void disableBle();
+
+    // BLE based protocols two-phase init
+    void initProtocols(int count, const BLEConfig config[]);
+    // BLE Command dispatcher registration, wrapped just to keep focused 
+    // on the need to call those functions after enableBle and before startBle
+    void registerBleCommandDispatcher(BleCommandDispatcher *c);
+    
+    void registerFeature(FeatureBase* feature);
     void unregisterFeature(const char* name);
-    Feature* getFeature(const char* name);
+    FeatureBase* getFeature(const char* name);
 
     // State query
     bool wifiOn() const { return wifiOn_; }
@@ -72,7 +85,6 @@ public:
 
 private:
     Board& board_;
-    BtServer btServer_;
 
     FeatureRegistry featureRegistry_;
     std::unique_ptr<ProtocolProcessor> protocol_;

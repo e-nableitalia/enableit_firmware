@@ -17,6 +17,15 @@ namespace enableit
         void dump() const;
         void serialize(String& out) const;
         const JsonDocument& view() const;
+
+        // Add a key-value pair to a custom section (creates section if not present)
+        void addCustomInfo(const String& section, const String& key, const JsonVariantConst& value);
+        void addCustomInfo(const String& key, const String& value);
+
+        // Remove a key from a custom section
+        void removeCustomInfo(const String& section, const String& key);
+        void clearCustomInfo(const String& section);
+
     private:
         JsonDocument systemInfo;
         boolean initialized = false;

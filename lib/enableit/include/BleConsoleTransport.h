@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 #include <Console.h>
-#include <BtServer.h>
 #include <BleCharacteristicHandler.h>
 
 // Usage: pass BleUuids::Console::RX and BleUuids::Console::TX for UUIDs
@@ -11,8 +10,7 @@ namespace enableit {
 
 class BleConsoleTransport : public ConsoleTransport, public BleCharacteristicHandler {
 public:
-    BleConsoleTransport(BtServer& btServer,
-                        const std::string& rxUuid,
+    BleConsoleTransport(const std::string& rxUuid,
                         const std::string& txUuid);
 
     // ConsoleTransport interface
@@ -31,7 +29,6 @@ public:
     void onUnsubscribe() override;
 
 private:
-    BtServer& btServer_;
     std::string rxUuid_;
     std::string txUuid_;
     bool connected_ = false;

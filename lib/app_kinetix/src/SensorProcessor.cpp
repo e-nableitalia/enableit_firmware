@@ -9,11 +9,6 @@ RealSensorProcessor::RealSensorProcessor(int offset, int threshold) {
    log_i("Real Sensor Processor created with offset=%d and threshold=%d", offset, threshold);
 }
 
-void RealSensorProcessor::setUpdateCallback(UpdateFn fn, void* ctx) {
-   updateFn = fn;
-   updateCtx = ctx;
-}
-
 void RealSensorProcessor::run() {
    uint16_t newReading = 0;
    // We must not read the ADC too fast

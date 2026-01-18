@@ -6,7 +6,7 @@
 #pragma once
 #include <Arduino.h>
 #include <BoardApp.h>
-#include "MovementFeature.h"
+#include "MovementCommandDispatcher.h"
 #include "OptionalSensorProcessor.h"
 
 class KinetixApp : public enableit::BoardApp {
@@ -15,7 +15,7 @@ class KinetixApp : public enableit::BoardApp {
     void process();
     const char *name();
     private:
-    MovementFeature *movementFeature_ = nullptr;
+    MovementCommandDispatcher *movementCommandDispatcher_ = nullptr;
     Settings settings_;
-    RealSensorProcessor *sensorProcessor_ = nullptr;
+    SensorProcessor *sensorProcessor_ = nullptr;
 };

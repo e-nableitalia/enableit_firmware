@@ -8,7 +8,8 @@
 #include <Arduino.h>
 #include <BoardManager.h>
 
-//DECLARE_BOARDAPP(BootLoaderApp);
+ENABLE_BOARD_APP(DemoApp);
+ENABLE_BOARD_APP(KinetixApp);
 ENABLE_BOARD_APP(BootLoaderApp);
 
 void setup() {

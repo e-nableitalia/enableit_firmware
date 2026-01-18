@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ENABLEIT_BOARD_XIAO_ESP32S3
+#ifdef ARDUINO_XIAO_ESP32S3
 
 #include <Arduino.h>
 #include <Board.h>

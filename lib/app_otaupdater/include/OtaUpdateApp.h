@@ -10,7 +10,7 @@
 #include <Arduino.h>
 #include <BoardApp.h>
 
-class OTAUpdateApp : public BoardApp {
+class OTAUpdateApp : public enableit::BoardApp {
     void enter();
     void leave();
     void process();
