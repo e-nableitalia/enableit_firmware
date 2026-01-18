@@ -13,7 +13,7 @@ ENABLE_BOARD_APP(KinetixApp);
 ENABLE_BOARD_APP(BootLoaderApp);
 
 void setup() {
-    ENABLEIT_BOOT(APP_BOOT);
+    ENABLEIT_BOOT("kinetix");
 }
 
 void loop() {
