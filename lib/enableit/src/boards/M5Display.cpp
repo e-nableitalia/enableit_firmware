@@ -1,6 +1,6 @@
 #include <boards/M5Display.h>
 
-#ifdef ARDUINO_M5STACK_ATOMS3
+#ifdef ARDUINO_M5Stack_ATOMS3
 
 #include "qrcode.h"
 

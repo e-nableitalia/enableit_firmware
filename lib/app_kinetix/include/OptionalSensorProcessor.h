@@ -29,6 +29,8 @@ public:
       updateCtx = ctx;
    }
 
+   virtual const char *name() const { return "Generic"; }
+
 protected:
    UpdateFn updateFn = nullptr;
    void* updateCtx = nullptr;
@@ -41,6 +43,8 @@ public:
 
    void run() override;
    uint16_t getAvg() override;
+
+   virtual const char *name() const override { return "RealSensor"; }
 
    time_t lastMeasureAt = 0;
    time_t measureIntervalMs = 70; 
@@ -66,4 +70,6 @@ public:
    uint16_t getAvg() override {
       return 0;
    }
+
+   virtual const char *name() const override { return "MockSensor"; }
 };

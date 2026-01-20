@@ -50,6 +50,8 @@ public:
     // Get CharBinding by UUID string key, or nullptr if not found
     CharBinding* getCharBinding(const std::string& uuid);
 
+    bool isConnected() const { return connected_; }
+
     // BLE core members
     BLEServer* server_ = nullptr;
     BLEService* service_ = nullptr;
@@ -71,6 +73,7 @@ private:
     class ServerCallback;
     String deviceName_;
     String serviceUuid_;
+    bool connected_ = false;
 };
 
 } // namespace enableit

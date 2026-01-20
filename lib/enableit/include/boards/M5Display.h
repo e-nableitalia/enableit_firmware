@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#ifdef ARDUINO_M5STACK_ATOMS3
+#ifdef ARDUINO_M5Stack_ATOMS3
 
 #include <M5GFX.h>
 #include <Display.h>

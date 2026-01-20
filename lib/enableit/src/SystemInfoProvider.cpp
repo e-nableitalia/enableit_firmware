@@ -90,7 +90,7 @@ const JsonDocument& SystemInfoProvider::view() const
 	return systemInfo;
 }
 
-void SystemInfoProvider::addCustomInfo(const String& section, const String& key, const JsonVariantConst& value)
+void SystemInfoProvider::addCustomInfo(const String& section, const String& key, const String& value)
 {
 	if (!initialized)
 	{

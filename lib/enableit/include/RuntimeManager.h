@@ -75,6 +75,8 @@ public:
     // State query
     bool wifiOn() const { return wifiOn_; }
     bool bleOn() const { return bleOn_; }
+    bool bleConnected() const { return BtServer::instance().isConnected(); }
+    bool wifiConnected() const { return WiFi.status() == WL_CONNECTED; }
 
     IPAddress getIp() const { return ipAddress_; }
 

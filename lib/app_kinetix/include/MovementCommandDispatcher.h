@@ -18,6 +18,7 @@ public:
     void calibration();
     void scratch();
     void come();
+    void demo();
 private:
     void startMovement(String cmd, String &response);
 

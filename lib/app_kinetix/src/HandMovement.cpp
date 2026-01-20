@@ -32,19 +32,6 @@ void HandMovement::start() {
    running = true;
 }
 
-void HandMovement::run() {
-   if (!running) {
-      return;
-   }
-   for(uint i = 0  ; i < FINGER_COUNT ; i++) {
-      if (fingerMovement[i] != NULL) {
-         if (millis() - startedAt > fingerMovement[i]->startDelay) {
-            hand->run(i);
-         }  
-      }
-   }
-}
-
 void HandMovement::stop() {
    running = false;
    hand->stop();
@@ -56,5 +43,5 @@ boolean HandMovement::isFinished() {
 }
 
 void HandMovement::printMovement() {
-   log_i("Move to %s", name);
+   log_i("Move to %s\n", name);
 }

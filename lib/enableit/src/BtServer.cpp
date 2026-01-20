@@ -61,10 +61,12 @@ namespace enableit
         void onConnect(BLEServer *pServer) override
         {
             log_i("BLE client connected.");
+            BtServer::instance().connected_ = true;
         }
         void onDisconnect(BLEServer *pServer) override
         {
             log_i("BLE client disconnected.");
+            BtServer::instance().connected_ = false;
             pServer->getAdvertising()->start();
         }
     };

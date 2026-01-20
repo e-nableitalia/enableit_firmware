@@ -1,7 +1,6 @@
 #include <cstring>
 #include <ArduinoJson.h>
 #include <Board.h>
-#include "MovementFeature.h" // for compatibility
 #include "MovementCommandDispatcher.h"
 
 #define MOVEMENT_DISPLAY_LINE 2
@@ -23,12 +22,11 @@ void MovementCommandDispatcher::handle(const String& cmd, String& response) {
 }
 
 void MovementCommandDispatcher::run() {
-    if (handMovement_ != nullptr) {
-        handMovement_->run();
-    }
     if (seq_ != nullptr) {
         seq_->run();
     }
+
+    hand_->run();
 }
 
 bool MovementCommandDispatcher::isIdle() const {
@@ -66,6 +64,12 @@ void MovementCommandDispatcher::startMovement(String cmd, String &response) {
         //response = "OK: come started";
         return;
     }
+    
+    if (cmd == "demo") {
+    	hand_->stop();
+    	demo();
+    	return;
+	}
     HandMovement* newHandMovement = hmf_->getByName(cmd.c_str());
     if (newHandMovement != nullptr) {
         hand_->stop();
@@ -101,4 +105,20 @@ void MovementCommandDispatcher::come() {
     seq_->addMovement(hmf->comeClose(), 500);
     seq_->start();
     delete hmf;
+}
+
+void MovementCommandDispatcher::demo() {
+  log_i("Starting demo sequence");
+  HandMovementFactory *hmf = new HandMovementFactory(hand_);
+  seq_ = new Sequence(0);
+  int delai = 1200;
+  seq_->addMovement(hmf->one(), delai);
+  seq_->addMovement(hmf->two(), delai);
+  seq_->addMovement(hmf->three(), delai);
+  seq_->addMovement(hmf->four(), delai);
+  seq_->addMovement(hmf->five(), delai);
+  seq_->addMovement(hmf->fist(), delai);
+  seq_->addMovement(hmf->rock(), delai);
+  seq_->addMovement(hmf->love(), delai);
+  seq_->start();
 }

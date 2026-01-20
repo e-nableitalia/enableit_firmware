@@ -416,7 +416,6 @@ void OTAWebUpdater::enter(void) {
 }
 
 void OTAWebUpdater::process(void) {
-  //server.handleClient();
   if(rebooting)
   {
     delay(100);

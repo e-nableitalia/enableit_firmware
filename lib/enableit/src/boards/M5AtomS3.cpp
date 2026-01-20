@@ -1,6 +1,6 @@
 #include <boards/M5AtomS3.h>
 
-#ifdef ARDUINO_M5STACK_ATOMS3
+#ifdef ARDUINO_M5Stack_ATOMS3
 
 namespace enableit {
 

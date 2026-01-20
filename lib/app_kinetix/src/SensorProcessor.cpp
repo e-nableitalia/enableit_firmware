@@ -1,7 +1,6 @@
 
 #include "OptionalSensorProcessor.h"
 
-
 RealSensorProcessor::RealSensorProcessor(int offset, int threshold) {
    this->offset = offset;
    this->threshold = threshold;

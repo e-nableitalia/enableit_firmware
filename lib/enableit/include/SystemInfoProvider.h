@@ -19,7 +19,7 @@ namespace enableit
         const JsonDocument& view() const;
 
         // Add a key-value pair to a custom section (creates section if not present)
-        void addCustomInfo(const String& section, const String& key, const JsonVariantConst& value);
+        void addCustomInfo(const String& section, const String& key, const String& value);
         void addCustomInfo(const String& key, const String& value);
 
         // Remove a key from a custom section

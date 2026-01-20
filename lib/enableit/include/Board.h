@@ -26,6 +26,8 @@ public:
 
     // Return the default hardware serial port for the board
     virtual ConsoleTransport& serial() = 0;
+
+    virtual const char *name() const { return "Generic"; }
 };
 
 extern Board& board;

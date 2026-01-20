@@ -73,8 +73,7 @@
 #define FINGER4_MAX_CLOSED 35
 #endif
 
-class Hand
-{
+class Hand {
 public:
    Hand();
 

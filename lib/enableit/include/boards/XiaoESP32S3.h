@@ -37,6 +37,8 @@ public:
     // Return the default hardware serial port
     ConsoleTransport& serial() override { return serialConsole_; }
 
+    const char *name() const override { return "XiaoESP32S3"; }
+
 private:
     MockDisplay Lcd;
     WifiEsp32 wifi_;

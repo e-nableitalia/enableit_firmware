@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ARDUINO_M5STACK_ATOMS3
+#ifdef ARDUINO_M5Stack_ATOMS3
 
 #include <M5Unified.h>
 #include <Arduino.h>
@@ -41,6 +41,8 @@ public:
 
     // Return the default hardware serial port
     ConsoleTransport& serial() override { return serialConsole_; }
+
+    const char *name() const override { return "M5AtomS3"; }
 
 private:
     M5Display Lcd;

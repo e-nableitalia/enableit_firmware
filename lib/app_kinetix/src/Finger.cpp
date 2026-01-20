@@ -55,8 +55,10 @@ void Finger::setStep(float _step) {
    step = _step;
 }
 void Finger::run() {
-   // time_t r = millis() % 10;
-   // if (r != 0) return;
+   if (millis() - movementStartedAt < delay) {
+      return;
+   } 
+
    bool update = false;
    char msg[100];
 
@@ -97,9 +99,18 @@ void Finger::setMovement(FingerMovement *fingerMovement) {
    }
    log_d("Target f%d: %d", number, target);
    step = fingerMovement->step;
+   movementStartedAt = millis();
+   delay = fingerMovement->startDelay;
+}
+void Finger::resetMovement() {
+   target = currentPosition;
+   delay = 0;
+   step = DEFAULT_STEP;
+   movementStartedAt = 0;
 }
 
 void Finger::moveRelative(int relativeTo) {
+   resetMovement();
    if (direction == 1) {
       target = map(relativeTo, 0, 100, maxOpen, maxClosed);
    } else {

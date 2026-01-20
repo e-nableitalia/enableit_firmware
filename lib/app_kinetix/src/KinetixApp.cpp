@@ -8,9 +8,9 @@
 #include "SystemConfigCommandDispatcher.h"
 #include "Hand.h"
 
-#define CONNECTED_DISPLAY_LINE 0
-#define SENSOR_DISPLAY_LINE 1
-#define MOVEMENT_DISPLAY_LINE 2
+#define CONNECTED_DISPLAY_LINE 2
+#define SENSOR_DISPLAY_LINE 3
+#define MOVEMENT_DISPLAY_LINE 4
 
 #define BLE_DEVICE_NAME "KinetiX"
 
@@ -33,13 +33,13 @@ void KinetixApp::enter()
 
 // add misc info in system info
 #ifdef CORE_DEBUG_LEVEL
-    enableit::systeminfo.addCustomInfo(SYSTEM_INFO_SECTION, "CORE_DEBUG_LEVEL=" + String(CORE_DEBUG_LEVEL));
+    enableit::systeminfo.addCustomInfo(SYSTEM_INFO_SECTION, String("CORE_DEBUG_LEVEL"), String(CORE_DEBUG_LEVEL));
 #endif
 
 #ifdef LEFT_HAND
-    enableit::systeminfo.addCustomInfo(SYSTEM_INFO_SECTION, "LEFT_HAND");
+    enableit::systeminfo.addCustomInfo(SYSTEM_INFO_SECTION, "HAND", "LEFT");
 #else
-    enableit::systeminfo.addCustomInfo(SYSTEM_INFO_SECTION, "RIGHT_HAND");
+    enableit::systeminfo.addCustomInfo(SYSTEM_INFO_SECTION, "HAND", "RIGHT");
 #endif
 
     log_i("Inizializing BLE service and characteristics");
@@ -83,6 +83,18 @@ void KinetixApp::enter()
 #else
     sensorProcessor_ = new MockSensorProcessor();
 #endif
+
+    String boardName = enableit::board.name();
+
+    enableit::systeminfo.addCustomInfo(SYSTEM_INFO_SECTION, "BOARD", boardName);
+
+    lastBleConnected = enableit::runtime.bleConnected();
+
+    enableit::board.getDisplay().setTextSize(2);
+    enableit::board.getDisplay().setTitle("KinetiX-" + boardName);
+    enableit::board.getDisplay().setTextSize(1);
+    enableit::board.getDisplay().setLine(CONNECTED_DISPLAY_LINE, "BLE: " + String(lastBleConnected ? "Connected" : "Disconnected"));
+    enableit::board.getDisplay().setLine(SENSOR_DISPLAY_LINE, "Sensor: " + String(sensorProcessor_->name()));
 }
 
 void KinetixApp::leave()
@@ -111,6 +123,14 @@ void KinetixApp::process()
         sensorProcessor_->run();
     
     hand_.run();
+
+    bool currentBleConnected = enableit::runtime.bleConnected();
+
+    if (currentBleConnected != lastBleConnected) {
+        // update on BLE state change only
+        enableit::board.getDisplay().setLine(CONNECTED_DISPLAY_LINE, "BLE: " + String(currentBleConnected ? "Connected" : "Disconnected"));
+        lastBleConnected = currentBleConnected;
+    }
 }
 
 const char *KinetixApp::name()

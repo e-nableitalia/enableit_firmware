@@ -19,8 +19,9 @@ class KinetixApp : public enableit::BoardApp {
     void leave();
     void process();
     const char *name();
-    private:
+private:
     MovementCommandDispatcher *movementCommandDispatcher_ = nullptr;
     Settings settings_;
     SensorProcessor *sensorProcessor_ = nullptr;
+    bool lastBleConnected = false;
 };
