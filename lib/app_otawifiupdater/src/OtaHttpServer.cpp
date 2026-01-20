@@ -36,10 +36,6 @@ void OtaHttpServer::end() {
     enableit::runtime.disableWifi();
 }
 
-void OtaHttpServer::handleClient() {
-    if (_running) _server.handleClient();
-}
-
 void OtaHttpServer::onUploadProgress(UploadCallback cb) {
     _uploadCb = cb;
 }

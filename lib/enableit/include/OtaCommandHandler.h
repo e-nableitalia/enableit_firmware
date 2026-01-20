@@ -1,7 +1,6 @@
 #pragma once
 #include <BleCommandDispatcher.h>
 #include <BoardManager.h>
-#include "OtaApp.h"
 #include <CommandParser.h>
 
 /**

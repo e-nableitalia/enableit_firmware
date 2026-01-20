@@ -1,7 +1,7 @@
 {
-  "name": "enableit-ota_wifiuploadserver",
+  "name": "enableit-app-otawifiupdater",
   "version": "1.0.0",
-  "description": "OTA WiFi Upload Server for enable.it, implementation derived from the Kinetix project by Reivaxy (https://github.com/reivaxy/kinetix). Allows firmware updates via WiFi.",
+  "description": "OTA WiFi Updater Server for enable.it, implementation derived from the Kinetix project by Reivaxy (https://github.com/reivaxy/kinetix). Allows firmware updates via WiFi.",
   "keywords": "enableit, ota, wifi, upload, server, firmware, kinetix, reivaxy",
   "authors": [
     {

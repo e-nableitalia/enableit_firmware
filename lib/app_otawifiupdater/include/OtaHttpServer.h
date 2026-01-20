@@ -18,9 +18,6 @@ public:
     // Stop the HTTP server
     void end();
 
-    // Call periodically from main loop
-    void handleClient();
-
     // Set OTA upload progress and finish callbacks
     void onUploadProgress(UploadCallback cb);
     void onUploadFinished(FinishCallback cb);

@@ -1,6 +1,5 @@
-#include "OtaCommandHandler.h"
-#include "OtaApp.h"
 #include <enableit.h>
+#include "OtaCommandHandler.h"
 #include <CommandParser.h>
 
 OtaCommandHandler::OtaCommandHandler(String otaAppName, const char* uuid, uint32_t properties)

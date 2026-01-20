@@ -117,7 +117,6 @@ void OtaApp::taskMain() {
     _sessionStartMs = _lastActivityMs;
     log_i("[OtaApp] Service loop started");
     while (!_stopTask) {
-        _server.handleClient();
         vTaskDelay(pdMS_TO_TICKS(5));
         uint32_t now = millis();
 

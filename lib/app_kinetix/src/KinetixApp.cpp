@@ -1,8 +1,8 @@
+#include "KinetixApp.h"
+
 #include <RuntimeManager.h>
 #include <SystemInfoProvider.h>
 #include <OtaCommandHandler.h>
-
-#include "KinetixApp.h"
 
 #include "SettingsCommandDispatcher.h"
 #include "SystemConfigCommandDispatcher.h"
