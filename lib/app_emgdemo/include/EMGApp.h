@@ -4,11 +4,9 @@
 //
 // Author: A.Navatta / e-Nable Italia
 
-#ifndef EMG_APP_H
+#pragma once
 
-#define EMG_APP_H
-
-#include <Arduino.h>
+#include <enableit.h>
 #include <Console.h>
 #include <BoardApp.h>
 
@@ -59,7 +57,5 @@ class EMGApp : public BoardApp {
     bool        streaming;
     int         delay;
     RTPPacket   packet;
-    CommandParser<EMGApp> parser;
+    ConsoleCommandParser<EMGApp> parser;
 };
-
-#endif // REBOOTSTATE_H

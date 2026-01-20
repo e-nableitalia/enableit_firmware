@@ -4,7 +4,7 @@
 #include "Sequence.h"
 #include "HandMovementFactory.h"
 #include "BleCommandDispatcher.h"
-#include <Arduino.h>
+#include <enableit.h>
 
 constexpr char MOVEMENT_CHARACTERISTIC_UUID[] = "39dea685-a63e-44b2-8819-9a202581f8fe";
 

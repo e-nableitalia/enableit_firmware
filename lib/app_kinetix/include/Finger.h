@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <Arduino.h>
+#include <enableit.h>
 #include <Servo.h>
 #include "FingerMovement.h"
 
@@ -25,7 +25,7 @@ public:
    Servo myServo;
 
    int number = 0;
-   int controlPin = D6;
+   int controlPin = 0;
    int maxOpen = 0; 
    int maxClosed = 180;
 

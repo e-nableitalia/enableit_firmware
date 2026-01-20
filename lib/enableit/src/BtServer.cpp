@@ -232,23 +232,39 @@ namespace enableit
         log_d("registerCharacteristic: binding created for uuid=%s", uuid);
         ch->setCallbacks(new CharacteristicCallback(handler, key));
         log_d("registerCharacteristic: callbacks set for uuid=%s", uuid);
+
+        // Add BLE2902 descriptor if notify property is set
+        if (properties & BLECharacteristic::PROPERTY_NOTIFY) {
+            binding.notifyEnabled = true;
+            ch->addDescriptor(new BLE2902());
+            log_d("registerCharacteristic: BLE2902 descriptor added for notify on uuid=%s", uuid);
+        }
+
         return true;
     }
 
     bool BtServer::notify(const char *uuid, const uint8_t *data, size_t len)
     {
-        if (!bleTxQueue || !uuid || !data || len == 0)
+        log_d("BtServer::notify called with uuid=%s, data=%p, len=%u", uuid ? uuid : "null", data, (unsigned)len);
+        if (!bleTxQueue || !uuid || !data || len == 0) {
+            log_d("BtServer::notify: Invalid parameters or bleTxQueue not initialized.");
             return false;
+        }
         auto it = bindings_.find(std::string(uuid));
-        if (it == bindings_.end())
+        if (it == bindings_.end()) {
+            log_d("BtServer::notify: No binding found for uuid=%s", uuid);
             return false;
+        }
         CharBinding &binding = it->second;
-        if (!binding.characteristic || !binding.notifyEnabled)
+        if (!binding.characteristic || !binding.notifyEnabled) {
+            log_d("BtServer::notify: Characteristic not found or notify not enabled for uuid=%s", uuid);
             return false;
+        }
         BleTxMsg msg{};
         msg.ch = binding.characteristic;
         msg.len = std::min(len, BLE_TX_MAX);
         memcpy(msg.data, data, msg.len);
+        log_d("BtServer::notify: Sending message to bleTxQueue, ch=%p, len=%u", msg.ch, msg.len);
         (void)xQueueSend(bleTxQueue, &msg, 0);
         return true;
     }

@@ -272,11 +272,11 @@ void Config::unlock(String pwd) {
 }
 
 void Config::load(char *json) {
-    DynamicJsonDocument doc(1024);
+    JsonDocument doc;
     deserializeJson(doc, json);
 
     for (int i = 0; i < SIZE; i++) {
-        if (doc.containsKey(params[i].name)) {
+        if (doc[params[i].name].is<const char*>()) {
             // set value        
             if ((!config.isPrivileged()) && (params[i].privileged)) {
                 log_d("Privileged parameter[%s] not stored", params[i].name);
@@ -305,7 +305,7 @@ void Config::fullDump() {
 }
 
 String Config::dump() {
-    StaticJsonDocument<1024> doc;
+    JsonDocument doc;
 
     for (int i = 0; i < SIZE; i++) {
         if ((!config.isPrivileged()) && (params[i].privileged)) {

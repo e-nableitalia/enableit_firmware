@@ -44,19 +44,18 @@ struct BLEConfig {
 
 namespace enableit {
 
-
 class RuntimeManager {
 public:
     RuntimeManager(Board& board);
 
     // Wi-Fi control (policy)
     bool enableWifi(const BootConfig& config);
-    void disableWifi(const BootConfig& config);
+    void disableWifi();
 
     // Combined modes (helper di policy)
     void startNormalMode(const BootConfig& config);
     void startProvisioningMode(const BootConfig& config);
-    void stopAll(const BootConfig& config);
+    void stopAll();
 
     // BLE control (policy) with service UUID
     bool enableBle(String name, String uuid);
@@ -77,6 +76,8 @@ public:
     bool wifiOn() const { return wifiOn_; }
     bool bleOn() const { return bleOn_; }
 
+    IPAddress getIp() const { return ipAddress_; }
+
 #if defined(THINGSBOARD_SUPPORT)
     bool enableThingsBoard(const BootConfig& config);
     void disableThingsBoard();
@@ -93,6 +94,8 @@ private:
     bool bleOn_ = false;
     bool mdnsOn_ = false;
     bool insightsOn_ = false;
+
+    IPAddress ipAddress_;
 
 #if defined(THINGSBOARD_SUPPORT)
     WiFiClient wifiClient_;

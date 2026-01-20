@@ -24,6 +24,11 @@ public:
 
     virtual ~BleCommandDispatcher() {}
 
+    void notify(const uint8_t* data, size_t len) {
+        log_d("BleCommandDispatcher::notify called for uuid=%s, len=%d", uuid, len);
+        BtServer::instance().notify(uuid, data, len);
+    }
+
     const char* getUuid() const { return uuid; }
     uint32_t getProperties() const { return properties; }
 
@@ -31,9 +36,8 @@ protected:
     const char* uuid;
     uint32_t properties;
 
-private:
     // Register this dispatcher as a handler for its characteristic on the given BtServer
-    // method is private to avoid direct calls
+    // method is protected to avoid direct calls
     bool init() {
         return BtServer::instance().registerCharacteristic(uuid, properties, this);
     }
@@ -57,7 +61,9 @@ public:
         std::string value = ch->getValue();
         String response;
         handle(String(value.c_str()), response);
-        ch->setValue(response.c_str());
+        if (response.length() > 0) {
+            notify(reinterpret_cast<const uint8_t*>(response.c_str()), response.length());
+        }
     }
 
     void onRead(BLECharacteristic* ch) override {
@@ -83,9 +89,9 @@ public:
     // BleCharacteristicHandler interface
     void onWrite(BLECharacteristic* ch) override {
         std::string value = ch->getValue();
-        StaticJsonDocument<JSON_DOC_SIZE> doc;
+        JsonDocument doc;
         DeserializationError err = deserializeJson(doc, value.c_str());
-        StaticJsonDocument<JSON_DOC_SIZE> respDoc;
+        JsonDocument respDoc;
         JsonObject respObj = respDoc.to<JsonObject>();
         if (err) {
             respObj["status"] = "error";
@@ -100,7 +106,7 @@ public:
     }
 
     void onRead(BLECharacteristic* ch) override {
-        StaticJsonDocument<JSON_DOC_SIZE> respDoc;
+        JsonDocument respDoc;
         JsonObject respObj = respDoc.to<JsonObject>();
         handle(JsonObjectConst(), respObj);
         String respStr;

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <Arduino.h>
+#include <enableit.h>
 
 #define DEFAULT_STEP 1
-
 
 class FingerMovement {
 public:  

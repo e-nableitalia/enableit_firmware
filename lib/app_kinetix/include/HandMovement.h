@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <Arduino.h>
+#include <enableit.h>
 #include "Hand.h"
 #include "Finger.h"
 #include "FingerMovement.h"

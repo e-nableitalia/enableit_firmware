@@ -42,9 +42,13 @@ void SystemInfoProvider::init(Board &board, Config &config)
 
 #ifdef FWREV
 	systemInfo["fw_rev"] = FWREV;
+#else
+	systemInfo["fw_rev"] = "unknown";
 #endif
 #ifdef GIT_REV
 	systemInfo["git_rev"] = GIT_REV;
+#else
+	systemInfo["git_rev"] = "unknown";
 #endif
     dump();
 }
@@ -94,13 +98,13 @@ void SystemInfoProvider::addCustomInfo(const String& section, const String& key,
 	}
 	JsonObject root = systemInfo.as<JsonObject>();
 	JsonObject sectionObj;
-	if (root.containsKey(section))
+	if (root[section].is<JsonObject>())
 	{
 		sectionObj = root[section].as<JsonObject>();
 	}
 	else
 	{
-		sectionObj = root.createNestedObject(section);
+		sectionObj = root[section].to<JsonObject>();
 	}
 	sectionObj[key] = value;
 }
@@ -113,13 +117,13 @@ void SystemInfoProvider::addCustomInfo(const String& section, const String& key)
 	}
 	JsonObject root = systemInfo.as<JsonObject>();
 	JsonObject infoObj;
-	if (root.containsKey(section))
+	if (root[section].is<JsonObject>())
 	{
 		infoObj = root[section].as<JsonObject>();
 	}
 	else
 	{
-		infoObj = root.createNestedObject(section);
+		infoObj = root[section].to<JsonObject>();
 	}
 	infoObj[key];
 }
@@ -131,10 +135,10 @@ void SystemInfoProvider::removeCustomInfo(const String& section, const String& k
 		return;
 	}
 	JsonObject root = systemInfo.as<JsonObject>();
-	if (root.containsKey(section))
+	if (root[section].is<JsonObject>())
 	{
 		JsonObject sectionObj = root[section].as<JsonObject>();
-		if (sectionObj.containsKey(key))
+		if (!sectionObj[key].isNull())
 		{
 			sectionObj.remove(key);
 		}
@@ -148,7 +152,7 @@ void SystemInfoProvider::clearCustomInfo(const String& section)
 		return;
 	}
 	JsonObject root = systemInfo.as<JsonObject>();
-	if (root.containsKey(section))
+	if (root[section].is<JsonObject>())
 	{
 		root.remove(section);
 	}

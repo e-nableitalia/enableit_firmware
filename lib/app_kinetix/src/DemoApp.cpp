@@ -2,7 +2,7 @@
 #include <RuntimeManager.h>
 #include <SystemInfoProvider.h>
 #include <SystemConfigCommandDispatcher.h>
-#include <Arduino.h>
+#include <enableit.h>
 
 #define SYSTEM_INFO_SECTION "options"
 

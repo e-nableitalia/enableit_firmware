@@ -54,7 +54,8 @@ bool RuntimeManager::enableWifi(const BootConfig& config) {
         log_i("");
         if (WiFi.status() == WL_CONNECTED) {
             log_i("WiFi connected");
-            log_i("IP address: [%s]", WiFi.localIP().toString().c_str());
+            ipAddress_ = WiFi.localIP();
+            log_i("IP address: [%s]", ipAddress_.toString().c_str());
         } else {
             log_e("Wifi init failed");
             log_i("Scanning for known wifi");
@@ -106,7 +107,7 @@ bool RuntimeManager::enableWifi(const BootConfig& config) {
     return true;
 }
 
-void RuntimeManager::disableWifi(const BootConfig& config) {
+void RuntimeManager::disableWifi() {
     if (!wifiOn_) {
         log_w("WiFi already deactivated");
         return;
@@ -160,12 +161,12 @@ void RuntimeManager::startNormalMode(const BootConfig& config) {
 void RuntimeManager::startProvisioningMode(const BootConfig& config) {
     enableBle(config.bleDeviceName, config.bleServiceUuid);
     // For provisioning, you may want AP or STA off; here we disable WiFi
-    disableWifi(config);
+    disableWifi();
 }
 
-void RuntimeManager::stopAll(const BootConfig& config) {
+void RuntimeManager::stopAll() {
     disableBle();
-    disableWifi(config);
+    disableWifi();
 }
 
 #if defined(THINGSBOARD_SUPPORT)

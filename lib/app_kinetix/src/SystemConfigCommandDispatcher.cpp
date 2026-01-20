@@ -2,7 +2,7 @@
 #include <SystemInfoProvider.h>
 #include <ArduinoJson.h>
 
-#include <Arduino.h>
+#include <enableit.h>
 
 SystemConfigCommandDispatcher::SystemConfigCommandDispatcher() : BleV1CommandDispatcher( SYSTEM_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ ) {
     Serial.println("[SystemConfigCommandDispatcher] Constructor called");

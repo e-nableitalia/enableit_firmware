@@ -1,7 +1,7 @@
 #include "SettingsCommandDispatcher.h"
 #include <ArduinoJson.h>
 
-#include <Arduino.h>
+#include <enableit.h>
 
 SettingsCommandDispatcher::SettingsCommandDispatcher(Settings* settings)
     : BleV1CommandDispatcher( CONFIG_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ ),
@@ -22,7 +22,7 @@ void SettingsCommandDispatcher::handle(const String& cmd, String& response) {
         // Write
         log_d("[SettingsCommandDispatcher] Updating settings with: %s", cmd.c_str());
         settings_->updateSetting(cmd.c_str());
-        response = "OK: setting updated";
+        //response = "OK: setting updated";
         log_d("[SettingsCommandDispatcher] Settings updated");
     }
 }

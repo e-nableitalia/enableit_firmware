@@ -7,7 +7,7 @@
 
 #define BOOTLOADER_APP_H
 
-#include <Arduino.h>
+#include <enableit.h>
 #include <BoardApp.h>
 
 class BootLoaderApp : public enableit::BoardApp {

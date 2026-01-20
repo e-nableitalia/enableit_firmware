@@ -10,7 +10,7 @@
 #if defined (STM32F2XX)	// Photon
 #include <particle.h>
 #else
-#include <Arduino.h>
+#include <enableit.h>
 #endif
 
 #define MAX_TIMERS      5

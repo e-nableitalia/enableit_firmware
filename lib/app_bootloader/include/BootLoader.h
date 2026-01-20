@@ -11,13 +11,14 @@
 
 #define BOOTLOADER_H
 
-#include <Arduino.h>
-#include <SPI.h>
-#include <Board.h>
-#include <Config.h>
-#include <RuntimeManager.h>
-#include <Console.h>
 #include <BoardApp.h>
+
+// #include <enableit.h>
+// #include <SPI.h>
+// #include <Board.h>
+// #include <Config.h>
+// #include <RuntimeManager.h>
+// #include <Console.h>
 
 #include <CommandParser.h>
 
@@ -64,7 +65,7 @@ private:
     unsigned long start;
     enableit::BoardApp *state;
 
-    CommandParser<BootLoader> parser;
+    ConsoleCommandParser<BootLoader> parser;
     bool devMode;
 };
 

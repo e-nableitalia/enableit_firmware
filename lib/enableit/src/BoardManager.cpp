@@ -183,6 +183,17 @@ namespace enableit
         return apps;
     }
 
+    BoardApp *BoardManager::getAppByName(const char *name)
+    {
+        std::lock_guard<std::recursive_mutex> lck(state_mtx);
+        for (int i = 0; i < MAX_APPS; i++)
+            if ((apps[i] != nullptr) && (!strcmp(name, apps[i]->name())))
+            {
+                return apps[i];
+            }
+        return nullptr;
+    }
+
     Board &BoardManager::getBoard()
     {
         return board;

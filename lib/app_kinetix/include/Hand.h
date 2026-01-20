@@ -1,5 +1,5 @@
 #pragma once
-#include <Arduino.h>
+#include <enableit.h>
 #include <driver/adc.h>
 
 #include "Finger.h"
@@ -10,61 +10,71 @@
 /*
  *   Thumb pulley expects 120°, other pulleys expect 180°
  */
+
+#ifdef ARDUINO_XIAO_ESP32S3
+// Pinout for Seeed Studio XIAO boards
 #define THUMB_CTRL_PIN D6
-
 #define FINGER1_CTRL_PIN D10
-
 #define FINGER2_CTRL_PIN D9
-
 #define FINGER3_CTRL_PIN D8
-
 #define FINGER4_CTRL_PIN D7
+#else
+#ifdef ARDUINO_M5Stack_ATOMS3
+// Pinout for M5Stack AtomS3
+#define THUMB_CTRL_PIN GPIO_NUM_1
+#define FINGER1_CTRL_PIN GPIO_NUM_2
+#define FINGER2_CTRL_PIN GPIO_NUM_3
+#define FINGER3_CTRL_PIN GPIO_NUM_4
+#define FINGER4_CTRL_PIN GPIO_NUM_5
+#else
+#error "Unsupported board: please define pin mappings for your board."
+#endif
+#endif
 
 /* Fingers 3 and 5 servos are mounted in oposite direction so their min and max are reversed compared to other fingers. */
 /* Left hand and right hand are symetrical so min and max need to be reversed */
 /* servos homing is supposed to be done before wiring, when servos can go full range from 0 to 180° */
 
-
 #ifdef LEFT_HAND
-   #define SERVO_CALIBRATION_OPEN 180
-   #define SERVO_CALIBRATION_CLOSED 0
+#define SERVO_CALIBRATION_OPEN 180
+#define SERVO_CALIBRATION_CLOSED 0
 
-   #define THUMB_MAX_OPEN 170
-   #define THUMB_MAX_CLOSED 30
+#define THUMB_MAX_OPEN 170
+#define THUMB_MAX_CLOSED 30
 
-   #define FINGER1_MAX_OPEN 180 
-   #define FINGER1_MAX_CLOSED 10
+#define FINGER1_MAX_OPEN 180
+#define FINGER1_MAX_CLOSED 10
 
-   #define FINGER2_MAX_OPEN 20
-   #define FINGER2_MAX_CLOSED 180
+#define FINGER2_MAX_OPEN 20
+#define FINGER2_MAX_CLOSED 180
 
-   #define FINGER3_MAX_OPEN 180
-   #define FINGER3_MAX_CLOSED 10
+#define FINGER3_MAX_OPEN 180
+#define FINGER3_MAX_CLOSED 10
 
-   #define FINGER4_MAX_OPEN 15
-   #define FINGER4_MAX_CLOSED 170
+#define FINGER4_MAX_OPEN 15
+#define FINGER4_MAX_CLOSED 170
 #else
-   #define SERVO_CALIBRATION_OPEN 0
-   #define SERVO_CALIBRATION_CLOSED 180
+#define SERVO_CALIBRATION_OPEN 0
+#define SERVO_CALIBRATION_CLOSED 180
 
-   #define THUMB_MAX_OPEN 30
-   #define THUMB_MAX_CLOSED 180
+#define THUMB_MAX_OPEN 30
+#define THUMB_MAX_CLOSED 180
 
-   #define FINGER1_MAX_OPEN 10 
-   #define FINGER1_MAX_CLOSED 180
+#define FINGER1_MAX_OPEN 10
+#define FINGER1_MAX_CLOSED 180
 
-   #define FINGER2_MAX_OPEN 180
-   #define FINGER2_MAX_CLOSED 0
+#define FINGER2_MAX_OPEN 180
+#define FINGER2_MAX_CLOSED 0
 
-   #define FINGER3_MAX_OPEN 0
-   #define FINGER3_MAX_CLOSED 180
+#define FINGER3_MAX_OPEN 0
+#define FINGER3_MAX_CLOSED 180
 
-   #define FINGER4_MAX_OPEN 180
-   #define FINGER4_MAX_CLOSED 35
+#define FINGER4_MAX_OPEN 180
+#define FINGER4_MAX_CLOSED 35
 #endif
 
-
-class Hand {
+class Hand
+{
 public:
    Hand();
 

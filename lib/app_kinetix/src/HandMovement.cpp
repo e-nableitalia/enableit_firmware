@@ -56,5 +56,5 @@ boolean HandMovement::isFinished() {
 }
 
 void HandMovement::printMovement() {
-   log_i("Move to %s\n", name);
+   log_i("Move to %s", name);
 }

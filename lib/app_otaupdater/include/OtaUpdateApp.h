@@ -7,7 +7,7 @@
 
 #define OTAUPDATE_APP_H
 
-#include <Arduino.h>
+#include <enableit.h>
 #include <BoardApp.h>
 
 class OTAUpdateApp : public enableit::BoardApp {

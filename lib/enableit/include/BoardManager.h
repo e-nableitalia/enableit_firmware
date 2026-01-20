@@ -37,6 +37,7 @@ public:
     void panic(int code, const char *description);
 
     BoardApp **getApps();
+    BoardApp *getAppByName(const char *name);
     BoardApp *getCurrentApp();
 
     Board &getBoard();

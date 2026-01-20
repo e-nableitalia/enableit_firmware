@@ -1,11 +1,11 @@
-#include "BootLoader.h"
-#include <Esp.h>
-#include <SPIFFS.h>
+#include <enableit.h>
+
 #include <Board.h>
-#include <WifiHal.h>
 #include <Config.h>
 #include <RuntimeManager.h>
-#include "SystemInfoProvider.h"
+#include <SystemInfoProvider.h>
+
+#include "BootLoader.h"
 
 #define CMD_HELP    "* help - show this help"
 #define CMD_INFO    "* info - show active configuration"
@@ -76,13 +76,6 @@ void BootLoader::init(enableit::BoardApp *s) {
     parser.add("list", CMD_LIST, &BootLoader::cmdList);
 
     log_d("Commands loaded");
-
-    if(!SPIFFS.begin(true))
-    {
-        OUT("SPIFFS mount failed!");
-    } else {
-        OUT("SPIFFS partition configured");
-    }
 
     // Prepare BootConfig for runtime
     BootConfig bootCfg;
@@ -289,7 +282,7 @@ void BootLoader::cmdWifion() {
     if (!enabled.compareTo("true")) {
         runtime.enableWifi(bootCfg);
     } else {
-        runtime.disableWifi(bootCfg);
+        runtime.disableWifi();
     }
 }
 

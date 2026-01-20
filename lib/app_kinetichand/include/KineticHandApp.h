@@ -7,7 +7,7 @@
 
 #define KINETICHAND_APP_H
 
-#include <Arduino.h>
+#include <enableit.h>
 #include <BoardApp.h>
 
 #define APP_KINETICHAND "kinetichand"

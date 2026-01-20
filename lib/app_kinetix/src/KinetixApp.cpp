@@ -1,9 +1,11 @@
-#include "KinetixApp.h"
 #include <RuntimeManager.h>
+#include <SystemInfoProvider.h>
+#include <OtaCommandHandler.h>
+
+#include "KinetixApp.h"
 
 #include "SettingsCommandDispatcher.h"
 #include "SystemConfigCommandDispatcher.h"
-#include <SystemInfoProvider.h>
 #include "Hand.h"
 
 #define CONNECTED_DISPLAY_LINE 0
@@ -49,6 +51,13 @@ void KinetixApp::enter()
     enableit::runtime.registerBleCommandDispatcher(movementCommandDispatcher_);
     enableit::runtime.registerBleCommandDispatcher(new SettingsCommandDispatcher(&settings_));
     enableit::runtime.registerBleCommandDispatcher(new SystemConfigCommandDispatcher());
+    enableit::runtime.registerBleCommandDispatcher(
+        new OtaCommandHandler(
+            APP_OTAUPDATE,
+            OTA_CHARACTERISTIC_UUID,
+            BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY
+        )
+    );
 
     // start ble operations
     log_i("Starting BLE");
@@ -80,8 +89,8 @@ void KinetixApp::leave()
 {
     log_i("Leaving Kinetix App state");
 
-    // Disable BLE
-    enableit::runtime.disableBle();
+    // Disable BLE removed to avoid interference with other apps: OtaApp for example
+    //enableit::runtime.disableBle();
 
     // Clean up sensor processor
     if (sensorProcessor_)

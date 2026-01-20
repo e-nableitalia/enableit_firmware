@@ -51,19 +51,19 @@ void MovementCommandDispatcher::startMovement(String cmd, String &response) {
     if (cmd == "calibration") {
         hand_->stop();
         calibration();
-        response = "OK: calibration started";
+        //response = "OK: calibration started";
         return;
     }
     if (cmd == "scratch") {
         hand_->stop();
         scratch();
-        response = "OK: scratch started";
+        //response = "OK: scratch started";
         return;
     }
     if (cmd == "come") {
         hand_->stop();
         come();
-        response = "OK: come started";
+        //response = "OK: come started";
         return;
     }
     HandMovement* newHandMovement = hmf_->getByName(cmd.c_str());
@@ -72,7 +72,7 @@ void MovementCommandDispatcher::startMovement(String cmd, String &response) {
         handMovement_ = newHandMovement;
         handMovement_->start();
     }
-    response = "OK: movement started";
+    //response = "OK: movement started";
 }
 
 void MovementCommandDispatcher::calibration() {

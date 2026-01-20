@@ -2,7 +2,7 @@
 #include "Feature.h"
 #include "Settings.h"
 #include "BleCommandDispatcher.h"
-#include <Arduino.h>
+#include <enableit.h>
 
 #define CONFIG_CHARACTERISTIC_UUID "68b788da-819b-4feb-b478-8d237ef29f5f"
 

@@ -1,10 +1,19 @@
 #pragma once
 
-#include <Arduino.h>
+#include <enableit.h>
 #include "Hand.h"
 #include "Settings.h"
 
+#ifdef ARDUINO_M5Stack_ATOMS3
+// Pinout for M5Stack AtomS3
+#define SENSOR_PIN GPIO_NUM_36
+#else
+#ifdef ARDUINO_XIAO_ESP32S3
 #define SENSOR_PIN A0
+#else
+#error "Unsupported board: please define sensor pin for your board."
+#endif
+#endif
 #define MAX_READINGS 5 // Number of readings to average
 
 class SensorProcessor {
