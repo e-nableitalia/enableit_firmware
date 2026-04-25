@@ -22,7 +22,7 @@ const char *secretkey = "7SgNsZ3^EX^sgK#n";
 #define TYPE_ENCRYPTED  3
 
 #define STORAGE       "enableit"
-#define SIGNATURE     "configv1"
+#define SIGNATURE     "configv2"
 #define SIGNATURE_LEN   sizeof(SIGNATURE)
 
 #if !defined(NO_GLOBAL_INSTANCES)
@@ -164,7 +164,7 @@ Param params[] = {
     { "httpusername", config.httpUsername, true, false, "admin" },
     { "httppassword", config.httpPassword, true, false, "admin" },
     { "timeout", config.bootTimeout, false,  3 },
-    { "app", config.mainApp, true, false, "kinetichand" },
+    { "app", config.mainApp, true, false, "emg" },
     { "telnet", config.telnet, true,  true },
     { "devmode", config.devMode, true,  false },
     { "devapp", config.devApp, true, false, "otaweb" },

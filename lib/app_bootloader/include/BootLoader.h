@@ -21,6 +21,9 @@
 // #include <Console.h>
 
 #include <CommandParser.h>
+#define FW_RELEASE "1.0"
+
+#define FWREV    FW_RELEASE "." __DATE__ "." __TIME__
 
 #define BUTTON_PIN  GPIO_NUM_0
 //#define LED_PIN     GPIO_NUM_25

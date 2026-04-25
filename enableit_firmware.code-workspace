@@ -1,9 +1,28 @@
 {
 	"folders": [
 		{
-			"name": "enableit_firmware",
 			"path": "."
+		},
+		{
+			"path": "../python"
+		},
+		{
+			"path": "../osp"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"*.readme": "cpp",
+			"chrono": "cpp",
+			"*.tcc": "cpp",
+			"array": "cpp",
+			"istream": "cpp",
+			"tuple": "cpp",
+			"utility": "cpp",
+			"unordered_map": "cpp",
+			"fstream": "cpp",
+			"ostream": "cpp",
+			"sstream": "cpp"
+		}
+	}
 }

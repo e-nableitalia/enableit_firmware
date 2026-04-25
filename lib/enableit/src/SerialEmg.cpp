@@ -80,7 +80,7 @@ void SerialEmg::init() {
         log_d("ChipId: Unknown(%x)", value);            
   }
 
-  setRate(RATE_2K);
+  setRate(RATE_1K);
 
   bufferDepth = 2000; // 1 second buffer, default
 
@@ -321,7 +321,8 @@ void SerialEmg::enable(int channel) {
 
   state |= 1 << channel;
     
-  ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  // ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  ADS.configChannel(channel, false, ADS129X_GAIN_6X, ADS129X_MUX_NORMAL);
 }
 
 void SerialEmg::disable(int channel) {
@@ -331,7 +332,8 @@ void SerialEmg::disable(int channel) {
 
   state &= ~(1 << channel);
     
-  ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  //ADS.WREG(ADS129X_REG_CH1SET + channel, newvalue);
+  ADS.configChannel(channel, true, ADS129X_GAIN_6X, ADS129X_MUX_SHORT);
 }
 
 void SerialEmg::setBuffer(int size) {
@@ -342,7 +344,7 @@ void SerialEmg::setBuffer(int size) {
 /* Check if there is data available, if so copy it to data */
 bool SerialEmg::readData(long *data, int timeout) {
   uint32_t start = micros();
-  while (!ADS.getData(data)) {
+  while (!ADS.getData(data, timeout)) {
     uint32_t delta = micros() - start;
     if (delta > timeout) {
       log_e("Read timeout expired");
@@ -354,19 +356,17 @@ bool SerialEmg::readData(long *data, int timeout) {
 }
 
 int SerialEmg::readData(uint8_t *buffer, int size, bool single_frame) {
-  BufferProducer *bp = ADS.getBufferProducer();
+  BufferProducer &bp = ADS.getBufferProducer();
 
-  if (bp) {
-    int available_data = bp->avail();
-    if ((single_frame) && (available_data < size)) {
-      return 0;
-    }
-    int chunk = min(size, available_data);
-    
-    bp->consume(buffer, chunk);
-    
+  int available_data = bp.avail();
+  
+  if ((single_frame) && (available_data < size)) {
+    return 0;
   }
-  return 0;
+  int chunk = min(size, available_data);
+  
+  return bp.consume(buffer, chunk);
+    
 }
 
 int SerialEmg::avail() {
