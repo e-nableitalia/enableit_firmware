@@ -61,7 +61,7 @@ void CommandParser<TClass>::parse() {
         argv[++i] = strtok(NULL, " ");
     } while ((i < MAX_ARGS - 1) && (argv[i] != NULL));
 
-    argc = i ? i-1 : 0;
+    argc = i;
 
     // find command
     for (int j = 0; j < MAX_COMMANDS; j++) {

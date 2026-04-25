@@ -154,7 +154,9 @@ void RuntimeManager::disableBle() {
 
 
 void RuntimeManager::startNormalMode(const BootConfig& config) {
-    enableBle(config.bleDeviceName, config.bleServiceUuid);
+    if (!config.bleServiceUuid.isEmpty()) {
+        enableBle(config.bleDeviceName, config.bleServiceUuid);
+    }
     enableWifi(config);
 }
 

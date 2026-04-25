@@ -50,11 +50,12 @@ public:
     static void onReconnectStatic(String ip);
     static void onConnectionAttemptStatic(String ip);
     static void onInputReceivedStatic(String str);
-    static TelnetConsoleTransport* instance() { return _instance; };
+    // Static singleton accessor
+    static TelnetConsoleTransport* instance();
 
 private:
     bool connected = false;
-    static TelnetConsoleTransport* _instance;
+    static TelnetConsoleTransport* _instance; // kept for backward compat, not used internally
 };
 
 class ConsoleWrapper : public Stream {

@@ -15,13 +15,14 @@
 ENABLE_BOARD_APP(OtaApp);
 ENABLE_BOARD_APP(DemoApp);
 ENABLE_BOARD_APP(KinetixApp);
+ENABLE_BOARD_APP(BootLoaderApp);
 DECLARE_BOARDAPP(BoardTest);
 DECLARE_BOARDAPP(MotorApp);
 
 void setup() {
     REGISTER_BOARD_APP(BoardTest);
     REGISTER_BOARD_APP(MotorApp);
-    ENABLEIT_BOOT("motor");
+    ENABLEIT_BOOT("boot");
 }
 
 void loop() {

@@ -29,11 +29,11 @@ void ConsoleWrapper::init(int baudRate, bool d, bool t)
   // force notify connect for serial to be active by default
   board.serial().notifyConnect();
   
+  // Always register the telnet transport (singleton), enable server only if requested
+  registerTransport(TelnetConsoleTransport::instance(), PRIORITY_TELNET);
   if (t)
   {
-    static TelnetConsoleTransport telnetTransport;
-    registerTransport(&telnetTransport, PRIORITY_TELNET);
-    telnetTransport.enable(true);
+    TelnetConsoleTransport::instance()->enable(true);
   }
 
   selectActiveTransport();
@@ -80,7 +80,7 @@ int ConsoleWrapper::read()
 
 void ConsoleWrapper::echo(uint8_t c)
 {
-  if (activeTransport && activeTransport->getPriority() == PRIORITY_SERIAL)
+  if (activeTransport)
   {
     activeTransport->write(c);
   }
@@ -334,34 +334,59 @@ void ConsoleTransport::notifyDisconnect()
 #include <ESPTelnetStream.h>
 static ESPTelnetStream telnetServer;
 
-// Singleton instance pointer
+// Singleton instance
 TelnetConsoleTransport* TelnetConsoleTransport::_instance = nullptr;
 
-// Static callback wrappers for ESPTelnetStream
+TelnetConsoleTransport* TelnetConsoleTransport::instance() {
+    static TelnetConsoleTransport _singleton;
+    return &_singleton;
+}
+
+// Static callback wrappers for ESPTelnetStream — use instance() directly (always valid)
 void TelnetConsoleTransport::onConnectStatic(String ip) {
-    if (_instance) _instance->onConnect();
+    log_d("Telnet onConnectStatic ip=%s", ip.c_str());
+    instance()->onConnect();
 }
 void TelnetConsoleTransport::onDisconnectStatic(String ip) {
-    if (_instance) _instance->onDisconnect();
+    log_d("Telnet onDisconnectStatic ip=%s", ip.c_str());
+    instance()->onDisconnect();
 }
 void TelnetConsoleTransport::onReconnectStatic(String ip) {
-    if (_instance) _instance->onReconnect();
+    log_d("Telnet onReconnectStatic ip=%s", ip.c_str());
+    instance()->onReconnect();
 }
 void TelnetConsoleTransport::onConnectionAttemptStatic(String ip) {
-    if (_instance) _instance->onConnectionAttempt();
+    log_d("Telnet onConnectionAttemptStatic ip=%s", ip.c_str());
+    instance()->onConnectionAttempt();
 }
 void TelnetConsoleTransport::onInputReceivedStatic(String str) {
-    if (_instance) _instance->onInput(str);
+    log_d("Telnet onInputReceivedStatic str='%s'", str.c_str());
+    instance()->onInput(str);
 }
 
 TelnetConsoleTransport::TelnetConsoleTransport() : ConsoleTransport("Telnet Console")
 {
     connected = false;
     _instance = this;
+    log_d("TelnetConsoleTransport created");
 }
-bool TelnetConsoleTransport::available() { return connected ? telnetServer.available() : 0; }
-int TelnetConsoleTransport::read() { return connected ? telnetServer.read() : -1; }
-size_t TelnetConsoleTransport::write(uint8_t c) { return connected ? telnetServer.write(c) : 0; }
+bool TelnetConsoleTransport::available() {
+    if (!connected) return false;
+    int n = telnetServer.available();
+    //if (n > 0) log_d("Telnet available=%d", n);
+    return n > 0;
+}
+int TelnetConsoleTransport::read() {
+    if (!connected) return -1;
+    int c = telnetServer.read();
+    //if (c >= 0) log_d("Telnet read=0x%02x '%c'", c, (c >= 32 && c < 127) ? c : '?');
+    return c;
+}
+size_t TelnetConsoleTransport::write(uint8_t c) {
+    if (!connected) return 0;
+    //log_d("Telnet write=0x%02x", c);
+    return telnetServer.write(c);
+}
 bool TelnetConsoleTransport::isConnected() { return connected; }
 int TelnetConsoleTransport::peek() { return connected ? telnetServer.peek() : -1; }
 void TelnetConsoleTransport::poll() { telnetServer.loop(); }
@@ -373,7 +398,8 @@ void TelnetConsoleTransport::enable(bool enable)
         telnetServer.onDisconnect(&TelnetConsoleTransport::onDisconnectStatic);
         telnetServer.onReconnect(&TelnetConsoleTransport::onReconnectStatic);
         telnetServer.onConnectionAttempt(&TelnetConsoleTransport::onConnectionAttemptStatic);
-        telnetServer.onInputReceived(&TelnetConsoleTransport::onInputReceivedStatic);
+        // onInputReceived NOT registered: ESPTelnetStream would consume the first char
+        // of each line before passing it to the callback, breaking available()/read() flow.
         telnetServer.begin();
     }
     else
@@ -387,28 +413,35 @@ void TelnetConsoleTransport::enable(bool enable)
 
 void TelnetConsoleTransport::onConnect()
 {
+    log_d("Telnet client connected from %s", telnetServer.getIP().c_str());
     connected = true;
     telnetServer.println("\nWelcome " + telnetServer.getIP());
     telnetServer.println("(Use ^] + q  to disconnect.)");
     notifyConnect();
+    log_d("Telnet notifyConnect done, transport now active");
 }
 void TelnetConsoleTransport::onDisconnect()
 {
+    log_d("Telnet client disconnected");
     connected = false;
     notifyDisconnect();
+    log_d("Telnet notifyDisconnect done, Serial should become active");
 }
 void TelnetConsoleTransport::onReconnect()
 {
+    log_d("Telnet client reconnected from %s", telnetServer.getIP().c_str());
     connected = true;
     notifyConnect();
 }
 void TelnetConsoleTransport::onConnectionAttempt()
 {
-    // Optionally handle connection attempts
+    log_d("Telnet connection attempt from %s", telnetServer.getIP().c_str());
 }
 void TelnetConsoleTransport::onInput(String str)
 {
-    // Optionally handle input
+    // ESPTelnetStream buffers input for available()/read() automatically.
+    // This callback is informational only.
+    log_d("Telnet onInput str='%s' len=%d available=%d", str.c_str(), str.length(), telnetServer.available());
 }
 
 ConsoleWrapper Console;
