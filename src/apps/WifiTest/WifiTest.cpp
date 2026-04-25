@@ -48,43 +48,43 @@ void WiFiEvent(WiFiEvent_t event) {
   Serial.printf("[WiFi-event] event: %d\n", event);
 
   switch (event) {
-    case ARDUINO_EVENT_WIFI_READY:               DBG("WiFi interface ready"); break;
-    case ARDUINO_EVENT_WIFI_SCAN_DONE:           DBG("Completed scan for access points"); break;
-    case ARDUINO_EVENT_WIFI_STA_START:           DBG("WiFi client started"); break;
-    case ARDUINO_EVENT_WIFI_STA_STOP:            DBG("WiFi clients stopped"); break;
-    case ARDUINO_EVENT_WIFI_STA_CONNECTED:       DBG("Connected to access point"); break;
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:    DBG("Disconnected from WiFi access point"); break;
-    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE: DBG("Authentication mode of access point has changed"); break;
+    case ARDUINO_EVENT_WIFI_READY:               log_d("WiFi interface ready"); break;
+    case ARDUINO_EVENT_WIFI_SCAN_DONE:           log_d("Completed scan for access points"); break;
+    case ARDUINO_EVENT_WIFI_STA_START:           log_d("WiFi client started"); break;
+    case ARDUINO_EVENT_WIFI_STA_STOP:            log_d("WiFi clients stopped"); break;
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:       log_d("Connected to access point"); break;
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:    log_d("Disconnected from WiFi access point"); break;
+    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE: log_d("Authentication mode of access point has changed"); break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      DBG("Obtained IP address: %s", WiFi.localIP().toString().c_str());
+      log_d("Obtained IP address: %s", WiFi.localIP().toString().c_str());
       break;
-    case ARDUINO_EVENT_WIFI_STA_LOST_IP:        DBG("Lost IP address and IP address is reset to 0"); break;
-    case ARDUINO_EVENT_WPS_ER_SUCCESS:          DBG("WiFi Protected Setup (WPS): succeeded in enrollee mode"); break;
-    case ARDUINO_EVENT_WPS_ER_FAILED:           DBG("WiFi Protected Setup (WPS): failed in enrollee mode"); break;
-    case ARDUINO_EVENT_WPS_ER_TIMEOUT:          DBG("WiFi Protected Setup (WPS): timeout in enrollee mode"); break;
-    case ARDUINO_EVENT_WPS_ER_PIN:              DBG("WiFi Protected Setup (WPS): pin code in enrollee mode"); break;
-    case ARDUINO_EVENT_WIFI_AP_START:           DBG("WiFi access point started"); break;
-    case ARDUINO_EVENT_WIFI_AP_STOP:            DBG("WiFi access point  stopped"); break;
-    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:    DBG("Client connected"); break;
-    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED: DBG("Client disconnected"); break;
-    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:   DBG("Assigned IP address to client"); break;
-    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:  DBG("Received probe request"); break;
-    case ARDUINO_EVENT_WIFI_AP_GOT_IP6:         DBG("AP IPv6 is preferred"); break;
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:        DBG("STA IPv6 is preferred"); break;
-    case ARDUINO_EVENT_ETH_GOT_IP6:             DBG("Ethernet IPv6 is preferred"); break;
-    case ARDUINO_EVENT_ETH_START:               DBG("Ethernet started"); break;
-    case ARDUINO_EVENT_ETH_STOP:                DBG("Ethernet stopped"); break;
-    case ARDUINO_EVENT_ETH_CONNECTED:           DBG("Ethernet connected"); break;
-    case ARDUINO_EVENT_ETH_DISCONNECTED:        DBG("Ethernet disconnected"); break;
-    case ARDUINO_EVENT_ETH_GOT_IP:              DBG("Obtained IP address"); break;
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:        log_d("Lost IP address and IP address is reset to 0"); break;
+    case ARDUINO_EVENT_WPS_ER_SUCCESS:          log_d("WiFi Protected Setup (WPS): succeeded in enrollee mode"); break;
+    case ARDUINO_EVENT_WPS_ER_FAILED:           log_d("WiFi Protected Setup (WPS): failed in enrollee mode"); break;
+    case ARDUINO_EVENT_WPS_ER_TIMEOUT:          log_d("WiFi Protected Setup (WPS): timeout in enrollee mode"); break;
+    case ARDUINO_EVENT_WPS_ER_PIN:              log_d("WiFi Protected Setup (WPS): pin code in enrollee mode"); break;
+    case ARDUINO_EVENT_WIFI_AP_START:           log_d("WiFi access point started"); break;
+    case ARDUINO_EVENT_WIFI_AP_STOP:            log_d("WiFi access point  stopped"); break;
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:    log_d("Client connected"); break;
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED: log_d("Client disconnected"); break;
+    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:   log_d("Assigned IP address to client"); break;
+    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:  log_d("Received probe request"); break;
+    case ARDUINO_EVENT_WIFI_AP_GOT_IP6:         log_d("AP IPv6 is preferred"); break;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:        log_d("STA IPv6 is preferred"); break;
+    case ARDUINO_EVENT_ETH_GOT_IP6:             log_d("Ethernet IPv6 is preferred"); break;
+    case ARDUINO_EVENT_ETH_START:               log_d("Ethernet started"); break;
+    case ARDUINO_EVENT_ETH_STOP:                log_d("Ethernet stopped"); break;
+    case ARDUINO_EVENT_ETH_CONNECTED:           log_d("Ethernet connected"); break;
+    case ARDUINO_EVENT_ETH_DISCONNECTED:        log_d("Ethernet disconnected"); break;
+    case ARDUINO_EVENT_ETH_GOT_IP:              log_d("Obtained IP address"); break;
     default:                                    break;
   }
 }
 
 // WARNING: This function is called from a separate FreeRTOS task (thread)!
 void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
-  DBG("WiFi connected");
-  DBG("IP address: %s", IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
+  log_d("WiFi connected");
+  log_d("IP address: %s", IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
 }
 
 void WifiApp::enter() {
@@ -101,41 +101,41 @@ void WifiApp::enter() {
   WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
   WiFiEventId_t eventID = WiFi.onEvent(
     [](WiFiEvent_t event, WiFiEventInfo_t info) {
-      DBG("WiFi lost connection. Reason: %d",info.wifi_sta_disconnected.reason);
+      log_d("WiFi lost connection. Reason: %d",info.wifi_sta_disconnected.reason);
     },
     WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED
   );
 
   // Remove WiFi event
-  DBG("WiFi Event ID: %d",eventID);
+  log_d("WiFi Event ID: %d",eventID);
   // WiFi.removeEvent(eventID);
 
-  DBG("Scan start");
+  log_d("Scan start");
 
   WiFi.setTxPower(WIFI_POWER_5dBm);
 
   // WiFi.scanNetworks will return the number of networks found.
   int n = WiFi.scanNetworks();
-  DBG("Scan done");
+  log_d("Scan done");
   if (n == 0) {
-    DBG("no networks found");
+    log_d("no networks found");
   } else {
     Serial.print(n);
-    DBG(" networks found");
+    log_d(" networks found");
     for (int i = 0; i < n; ++i) {
       // Print SSID for each network found
-      DBG("%s\n", WiFi.SSID(i).c_str());
+      log_d("%s\n", WiFi.SSID(i).c_str());
       delay(10);
     }
   }
-  DBG("");
+  log_d("");
 
   // Delete the scan result to free memory for code below.
   WiFi.scanDelete();
 
   WiFi.begin(ssid, password);
 
-  DBG("Wait for WiFi... ");
+  log_d("Wait for WiFi... ");
 }
 
 void WifiApp::process() {

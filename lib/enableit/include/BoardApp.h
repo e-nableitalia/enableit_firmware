@@ -3,9 +3,10 @@
 //
 // Author: A.Navatta / e-Nable Italia
 
-#ifndef BOARD_APP_H
+#pragma once
 
-#define BOARD_APP_H
+#include <functional> // aggiungi questo include per std::function
+#include <Arduino.h>
 
 // Max allowed applications
 #define MAX_APPS      16
@@ -21,14 +22,44 @@
 #define STATE_RUNNING   "run"
 #define STATE_REBOOT    "reboot"
 
+namespace enableit {
+    namespace capabilities {
+        constexpr const char* Notify = "notify";
+    }
 class BoardApp {
 public:
+    using NotifyFn = std::function<void(const String&)>;
+
+    BoardApp() = default;
+    virtual ~BoardApp() = default;
+
     virtual void enter() = 0;
     virtual void process() = 0;
     virtual void leave() = 0;
     virtual const char *name() = 0;
     void changeApp(const char *name);
     BoardApp **apps();
+    bool hasApp(const char *state_name);
+    virtual String getInfo(String key) const {
+        return "";
+    }
+    virtual void setInfo(String key, String value) {
+        // default: do nothing
+    }
+    // Capability query (override in derived classes), useful for features detection without dynamic_cast
+    virtual bool hasCapability(const char* cap) const {
+        return false;
+    }
+    virtual void setNotifyFn(NotifyFn fn) {
+        // default: do nothing
+    }
 };
 
-#endif // BOARD_APP_H
+} // namespace enableit
+
+#define BOARDAPP_INSTANCE(APP_TYPE)                 \
+    static APP_TYPE APP_TYPE##_instance;            \
+    extern "C" ::enableit::BoardApp&                \
+    get_##APP_TYPE##_app() {                        \
+        return APP_TYPE##_instance;                 \
+    }

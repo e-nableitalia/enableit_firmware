@@ -14,7 +14,7 @@
 
 #define APP_WIFITEST "wifi"
 
-class WifiApp : public BoardApp {
+class WifiApp : public enableit::BoardApp {
     void enter();
     void leave();
     void process();

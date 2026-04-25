@@ -1,5 +1,5 @@
 {
-    "name": "enableit",
+    "name": "enableit-platform",
     "version": "1.0.0",
     "description": "A library supporting bionic and electronic controlled enable devices on ESP32 platforms",
     "keywords": "enableit, platform, esp32",
@@ -18,13 +18,12 @@
     "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
     "homepage": "https://e-nable.it/",
     "dependencies": {
-      "spi" : "",
-      "WiFiClientSecure" : "",
-      "knolleary/PubSubClient" : "~2.8",
-      "bblanchon/ArduinoJson" : "~6.20.0",
-      "thingsboard/ThingsBoard" : "^0.10.2",
-      "lennarthennigs/ESP Telnet" : "^2.1.2"
+      "spi": "",
+      "WiFiClientSecure": "",
+      "bblanchon/ArduinoJson": "^7.4.2",
+      "lennarthennigs/ESP Telnet": "^2.1.2",
+      "jchristensen/JC_Button": "^2.1.2"
     },
-    "frameworks": "*",
-    "platforms": "*"
+    "frameworks": ["arduino"],
+    "platforms": ["espressif32"]
   }

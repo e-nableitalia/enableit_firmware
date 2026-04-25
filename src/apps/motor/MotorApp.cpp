@@ -23,7 +23,7 @@
 #define CMD_TESTSYNC "* testsync, muove due servi in modo sincrono avanti e indietro"
 
 void MotorApp::enter() {
-    DBG("enter MotorApp");
+    log_d("enter MotorApp");
     parser.init(this);
     parser.add("forward", CMD_FORWARD, &MotorApp::cmdForward);
     parser.add("reverse", CMD_REVERSE, &MotorApp::cmdReverse);
@@ -46,32 +46,32 @@ void MotorApp::enter() {
     parser.add("testmove", CMD_TESTMOVE, &MotorApp::cmdTestMove);
     parser.add("testsync", CMD_TESTSYNC, &MotorApp::cmdTestSync);
     // Initialize motor with DRV8411 and without speed control
-    DBG("Initializing motors");
-    DBG("Initializing motor #1");
+    log_d("Initializing motors");
+    log_d("Initializing motor #1");
     PQ12Motor[0].init(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_WIPER, MOTOR1_ISENSE, false);
     #ifdef USE_TWO_MOTORS
-    DBG("Initializing motor #2");
+    log_d("Initializing motor #2");
     PQ12Motor[1].init(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_WIPER, MOTOR2_ISENSE, false);
     #else
     // Initialize SMotor
-    DBG("Initializing SMotor");
+    log_d("Initializing SMotor");
     SMotor::static_init(BUS_SERIAL_RX, BUS_SERIAL_TX);
-    DBG("SMotor initialized");
+    log_d("SMotor initialized");
     ST3215Motor.init(SERVO_ID);
 
     // // Ping the servo to check communication
-    // DBG("Pinging servo...");
+    // log_d("Pinging servo...");
     // bool pingResult = ST3215Motor.Ping(SERVO_ID);
     // if (pingResult) {
-    //     DBG("Servo ping successful, id: %d", SERVO_ID);
+    //     log_d("Servo ping successful, id: %d", SERVO_ID);
     // } else {
-    //     DBG("Servo ping failed");
+    //     log_d("Servo ping failed");
     // }
     #endif
 }
 
 void MotorApp::leave() {
-    DBG("leave MotorApp");
+    log_d("leave MotorApp");
     // ...cleanup if needed...
 }
 
@@ -90,48 +90,48 @@ void MotorApp::cmdReverse() {
 
 void MotorApp::cmdGetPosition() {
     int position = PQ12Motor[selectedMotor].getPosition();
-    DBG("Motor position: %d", position);
+    log_d("Motor position: %d", position);
 }
 
 void MotorApp::cmdSetSpeed() {
     speed = parser.getInt(1);
-    DBG("Motor speed set to: %d", speed);
+    log_d("Motor speed set to: %d", speed);
     PQ12Motor[selectedMotor].speed(speed);
 }
 
 void MotorApp::cmdHelp() {
-    DBG("Available commands:");
-    DBG(CMD_FORWARD);
-    DBG(CMD_REVERSE);
-    DBG(CMD_GET_POSITION);
-    DBG(CMD_SET_SPEED);
-    DBG(CMD_HELP);
-    DBG(CMD_CURRENT);
-    DBG(CMD_STOP);
-    DBG(CMD_SET_PIN);
-    DBG(CMD_SLEEP);
-    DBG(CMD_SELECT_MOTOR);
-    DBG(CMD_GET_SERVO_INFO);
-    DBG(CMD_PING_SERVOS);
-    DBG(CMD_SCAN);
-    DBG(CMD_SET_ID);
-    DBG(CMD_SET_BAUD);
-    DBG(CMD_USE_ID);
-    DBG(CMD_USE_RATE);
-    DBG(CMD_FEEDBACK);
-    DBG(CMD_TESTMOVE);
-    DBG(CMD_TESTSYNC);
-    DBG("* Opzioni attuali: servoId=%d, servoBaudrate=%ld", servoId, servoBaudrate);
+    log_d("Available commands:");
+    log_d(CMD_FORWARD);
+    log_d(CMD_REVERSE);
+    log_d(CMD_GET_POSITION);
+    log_d(CMD_SET_SPEED);
+    log_d(CMD_HELP);
+    log_d(CMD_CURRENT);
+    log_d(CMD_STOP);
+    log_d(CMD_SET_PIN);
+    log_d(CMD_SLEEP);
+    log_d(CMD_SELECT_MOTOR);
+    log_d(CMD_GET_SERVO_INFO);
+    log_d(CMD_PING_SERVOS);
+    log_d(CMD_SCAN);
+    log_d(CMD_SET_ID);
+    log_d(CMD_SET_BAUD);
+    log_d(CMD_USE_ID);
+    log_d(CMD_USE_RATE);
+    log_d(CMD_FEEDBACK);
+    log_d(CMD_TESTMOVE);
+    log_d(CMD_TESTSYNC);
+    log_d("* Opzioni attuali: servoId=%d, servoBaudrate=%ld", servoId, servoBaudrate);
 }
 
 void MotorApp::cmdCurrent() {
     int current = PQ12Motor[selectedMotor].getCurrent();
-    DBG("Motor current: %d mA", current);
+    log_d("Motor current: %d mA", current);
 }
 
 void MotorApp::cmdStop() {
     PQ12Motor[selectedMotor].stop("user stop");
-    DBG("Motor stopped");
+    log_d("Motor stopped");
 }
 
 void MotorApp::cmdSetPin() {
@@ -147,39 +147,39 @@ void MotorApp::cmdSetPin() {
     else if (strcmp(pin, "G39") == 0) pinNumber = 39;
 
     if (pinNumber == -1) {
-        DBG("Invalid pin: %s", pin);
+        log_d("Invalid pin: %s", pin);
         return;
     }
 
     pinMode(pinNumber, OUTPUT);
     if (strcmp(state, "high") == 0) {
         digitalWrite(pinNumber, HIGH);
-        DBG("Pin %s set to HIGH", pin);
+        log_d("Pin %s set to HIGH", pin);
     } else if (strcmp(state, "low") == 0) {
         digitalWrite(pinNumber, LOW);
-        DBG("Pin %s set to LOW", pin);
+        log_d("Pin %s set to LOW", pin);
     } else {
-        DBG("Invalid state: %s", state);
+        log_d("Invalid state: %s", state);
     }
 }
 
 void MotorApp::cmdSleep() {
     PQ12Motor[selectedMotor].sleep();
-    DBG("Motor put to sleep");
+    log_d("Motor put to sleep");
 }
 
 void MotorApp::cmdSelectMotor() {
     int n = parser.getInt(1);
     if (n < 0 || n >= NUM_MOTORS) {
-        DBG("Invalid motor index: %d", n);
+        log_d("Invalid motor index: %d", n);
         return;
     }
     selectedMotor = n;
-    DBG("Selected motor: %d", selectedMotor);
+    log_d("Selected motor: %d", selectedMotor);
 }
 
 void MotorApp::cmdGetServoInfo() {
-    DBG("Getting servo info for ID %d", servoId);
+    log_d("Getting servo info for ID %d", servoId);
     int pos = ST3215Motor.ReadPos(servoId);
     int speed = ST3215Motor.ReadSpeed(servoId);
     int load = ST3215Motor.ReadLoad(servoId);
@@ -187,19 +187,19 @@ void MotorApp::cmdGetServoInfo() {
     int temp = ST3215Motor.ReadTemper(servoId);
     int current = ST3215Motor.ReadCurrent(servoId);
 
-    DBG("Pos: %d  Speed: %d  Load: %d  Volt: %fV  Temp: %d°C  Current: %d mA",
+    log_d("Pos: %d  Speed: %d  Load: %d  Volt: %fV  Temp: %d°C  Current: %d mA",
         pos, speed, load, voltage / 10.0, temp, current);
 }
 
 void MotorApp::cmdPingServos() {
-    DBG("Ping su servo ID %d", servoId);
+    log_d("Ping su servo ID %d", servoId);
     int result = ST3215Motor.Ping(servoId);
     if (result == servoId) {
-        DBG("Ping: il servo con ID %d ha risposto", servoId);
+        log_d("Ping: il servo con ID %d ha risposto", servoId);
     } else if (result == -1) {
-        DBG("Ping: nessun servo ha risposto all'ID %d", servoId);
+        log_d("Ping: nessun servo ha risposto all'ID %d", servoId);
     } else {
-        DBG("Ping: risposta inattesa da ID %d", result);
+        log_d("Ping: risposta inattesa da ID %d", result);
     }
 }
 
@@ -207,37 +207,37 @@ void MotorApp::cmdScan() {
     long bauds[] = {1000000, 500000, 250000, 128000, 115200, 76800, 57600, 38400};
     int nBauds = sizeof(bauds) / sizeof(bauds[0]);
     for (int i = 0; i < nBauds; i++) {
-        DBG("Setting baudrate to %d", bauds[i]);
+        log_d("Setting baudrate to %d", bauds[i]);
         ST3215Motor.pSerial->begin(bauds[i], SERIAL_8N1, BUS_SERIAL_RX, BUS_SERIAL_TX);
         delay(100);
         int r = ST3215Motor.Ping(0xFE);
         if (r != -1) {
-            DBG("Servo found at index %d, baudrate %d, id %d", i, bauds[i], r);
+            log_d("Servo found at index %d, baudrate %d, id %d", i, bauds[i], r);
             break;
         }
     }
-    DBG("Scan completed");
+    log_d("Scan completed");
 }
 
 // Sblocca EEPROM, cambia ID a newId
 void MotorApp::cmdSetId() {
     int newId = parser.getInt(1);
     if (newId < 0 || newId > 253) {
-        DBG("ID non valido: %d (deve essere tra 0 e 253)", newId);
+        log_d("ID non valido: %d (deve essere tra 0 e 253)", newId);
         return;
     }
-    DBG("Sblocco EEPROM e cambio ID a %d (ID attuale=%d)", newId, servoId);
+    log_d("Sblocco EEPROM e cambio ID a %d (ID attuale=%d)", newId, servoId);
     // Sblocca EEPROM
     int res_unlock = ST3215Motor.unLockEprom(servoId);
     if (res_unlock == 1) {
         if (ST3215Motor.getError() == 0) {
-            DBG("EEPROM sbloccata con successo");
+            log_d("EEPROM sbloccata con successo");
         } else {
-            DBG("Errore sconosciuto durante lo sblocco EEPROM, codice: %d", ST3215Motor.getError());
+            log_d("Errore sconosciuto durante lo sblocco EEPROM, codice: %d", ST3215Motor.getError());
             return;
         }
     } else {
-        DBG("Errore durante lo sblocco EEPROM");
+        log_d("Errore durante lo sblocco EEPROM");
         return;
     }
 
@@ -245,15 +245,15 @@ void MotorApp::cmdSetId() {
     int res_write = ST3215Motor.writeByte(servoId, SMS_STS_ID, newId);
     if (res_write == 1) {
         if (ST3215Motor.getError() == 0) {
-            DBG("ID cambiato con successo a %d", newId);
+            log_d("ID cambiato con successo a %d", newId);
         } else {
-            DBG("Errore sconosciuto durante la scrittura dell'ID, codice: %d", ST3215Motor.getError());
+            log_d("Errore sconosciuto durante la scrittura dell'ID, codice: %d", ST3215Motor.getError());
             // Blocca comunque l'EEPROM per sicurezza
             ST3215Motor.LockEprom(newId);
             return;
         }
     } else {
-        DBG("Errore durante la scrittura dell'ID");
+        log_d("Errore durante la scrittura dell'ID");
         // Blocca comunque l'EEPROM per sicurezza
         ST3215Motor.LockEprom(newId);
         return;
@@ -263,12 +263,12 @@ void MotorApp::cmdSetId() {
     int res_lock = ST3215Motor.LockEprom(newId);
     if (res_lock == 1) {
         if (ST3215Motor.getError() == 0) {
-            DBG("EEPROM bloccata di nuovo");
+            log_d("EEPROM bloccata di nuovo");
         } else {
-            DBG("Errore sconosciuto durante il blocco EEPROM, codice: %d", ST3215Motor.getError());
+            log_d("Errore sconosciuto durante il blocco EEPROM, codice: %d", ST3215Motor.getError());
         }
     } else {
-        DBG("Errore nel blocco dell'EEPROM");
+        log_d("Errore nel blocco dell'EEPROM");
     }
 }
 
@@ -278,63 +278,63 @@ void MotorApp::cmdSetBaud() {
     int nBauds = sizeof(baudrates) / sizeof(baudrates[0]);
     int baudIndex = parser.getInt(1);
     if (baudIndex < 0 || baudIndex >= nBauds) {
-        DBG("Indice baudrate non valido: %d", baudIndex);
+        log_d("Indice baudrate non valido: %d", baudIndex);
         return;
     }
     uint8_t baudValue = baudIndex;
-    DBG("Sblocco EEPROM per cambio baudrate (ID=%d)", servoId);
+    log_d("Sblocco EEPROM per cambio baudrate (ID=%d)", servoId);
     int res_unlock = ST3215Motor.unLockEprom(servoId);
     if (res_unlock == 1) {
         if (ST3215Motor.getError() == 0) {
-            DBG("EEPROM sbloccata con successo");
+            log_d("EEPROM sbloccata con successo");
         } else {
-            DBG("Errore sconosciuto durante lo sblocco EEPROM, codice: %d", ST3215Motor.getError());
+            log_d("Errore sconosciuto durante lo sblocco EEPROM, codice: %d", ST3215Motor.getError());
             return;
         }
     } else {
-        DBG("Errore durante lo sblocco EEPROM");
+        log_d("Errore durante lo sblocco EEPROM");
         return;
     }
 
-    DBG("Cambio baudrate a %ld bps (ID=%d, N=%d)", baudrates[baudIndex], servoId, baudValue);
+    log_d("Cambio baudrate a %ld bps (ID=%d, N=%d)", baudrates[baudIndex], servoId, baudValue);
     int res_baud = ST3215Motor.writeByte(servoId, SMS_STS_BAUD_RATE, baudValue);
     if (res_baud == 1) {
         if (ST3215Motor.getError() == 0) {
-            DBG("Baudrate cambiato con successo a %d bps (N=%d)", baudrates[baudIndex], baudValue);
+            log_d("Baudrate cambiato con successo a %d bps (N=%d)", baudrates[baudIndex], baudValue);
         } else {
-            DBG("Errore sconosciuto durante il cambio baudrate, codice: %d", ST3215Motor.getError());
+            log_d("Errore sconosciuto durante il cambio baudrate, codice: %d", ST3215Motor.getError());
             // Blocca comunque l'EEPROM per sicurezza
             ST3215Motor.LockEprom(servoId);
             return;
         }
     } else {
-        DBG("Errore durante la scrittura del baudrate");
+        log_d("Errore durante la scrittura del baudrate");
         // Blocca comunque l'EEPROM per sicurezza
         ST3215Motor.LockEprom(servoId);
         return;
     }
 
-    DBG("Riavvio la seriale");
+    log_d("Riavvio la seriale");
     ST3215Motor.pSerial->begin(baudrates[baudIndex], SERIAL_8N1, BUS_SERIAL_RX, BUS_SERIAL_TX);
     servoBaudrate = baudrates[baudIndex];
     delay(100);
     int ping = ST3215Motor.Ping(servoId);
     if (ping == servoId) {
-        DBG("Servo risponde con ID %d e baudrate %d", servoId, servoBaudrate);
+        log_d("Servo risponde con ID %d e baudrate %d", servoId, servoBaudrate);
     } else {
-        DBG("Servo NON risponde dopo cambio baudrate");
+        log_d("Servo NON risponde dopo cambio baudrate");
     }
 
     // Blocca di nuovo l'EEPROM
     int res_lock = ST3215Motor.LockEprom(servoId);
     if (res_lock == 1) {
         if (ST3215Motor.getError() == 0) {
-            DBG("EEPROM bloccata di nuovo");
+            log_d("EEPROM bloccata di nuovo");
         } else {
-            DBG("Errore sconosciuto durante il blocco EEPROM, codice: %d", ST3215Motor.getError());
+            log_d("Errore sconosciuto durante il blocco EEPROM, codice: %d", ST3215Motor.getError());
         }
     } else {
-        DBG("Errore nel blocco dell'EEPROM");
+        log_d("Errore nel blocco dell'EEPROM");
     }
 }
 
@@ -342,11 +342,11 @@ void MotorApp::cmdSetBaud() {
 void MotorApp::cmdUseId() {
     int newId = parser.getInt(1);
     if (newId < 0 || newId > 253) {
-        DBG("ID non valido: %d (deve essere tra 0 e 253)", newId);
+        log_d("ID non valido: %d (deve essere tra 0 e 253)", newId);
         return;
     }
     servoId = newId;
-    DBG("Impostato servoId di default a %d", servoId);
+    log_d("Impostato servoId di default a %d", servoId);
 }
 
 // Imposta il baudrate di default da usare nei comandi
@@ -355,12 +355,12 @@ void MotorApp::cmdUseRate() {
     long baudrates[] = {1000000, 500000, 250000, 128000, 115200, 76800, 57600, 38400};
     int nBauds = sizeof(baudrates) / sizeof(baudrates[0]);
     if (baudIndex < 0 || baudIndex >= nBauds) {
-        DBG("Indice baudrate non valido: %d (range 0-%d)", baudIndex, nBauds - 1);
+        log_d("Indice baudrate non valido: %d (range 0-%d)", baudIndex, nBauds - 1);
         return;
     }
     servoBaudrate = baudrates[baudIndex];
     ST3215Motor.pSerial->begin(servoBaudrate, SERIAL_8N1, BUS_SERIAL_RX, BUS_SERIAL_TX);
-    DBG("Impostato servoBaudrate di default a %d (indice %d)", servoBaudrate, baudIndex);
+    log_d("Impostato servoBaudrate di default a %d (indice %d)", servoBaudrate, baudIndex);
 }
 
 void MotorApp::cmdFeedback() {
@@ -374,78 +374,78 @@ void MotorApp::cmdFeedback() {
         Temper = ST3215Motor.ReadTemper(-1);
         Move = ST3215Motor.ReadMove(-1);
         Current = ST3215Motor.ReadCurrent(-1);
-        DBG("Position: %d", Pos);
-        DBG("Speed: %d", Speed);
-        DBG("Load: %d", Load);
-        DBG("Voltage: %d", Voltage);
-        DBG("Temper: %d", Temper);
-        DBG("Move: %d", Move);
-        DBG("Current: %d", Current);
+        log_d("Position: %d", Pos);
+        log_d("Speed: %d", Speed);
+        log_d("Load: %d", Load);
+        log_d("Voltage: %d", Voltage);
+        log_d("Temper: %d", Temper);
+        log_d("Move: %d", Move);
+        log_d("Current: %d", Current);
     } else {
-        DBG("FeedBack err");
+        log_d("FeedBack err");
     }
 
     // Letture singole con id esplicito
     Pos = ST3215Motor.ReadPos(servoId);
     if (Pos != -1) {
-        DBG("Servo position: %d", Pos);
+        log_d("Servo position: %d", Pos);
     } else {
-        DBG("read position err");
+        log_d("read position err");
     }
 
     Voltage = ST3215Motor.ReadVoltage(servoId);
     if (Voltage != -1) {
-        DBG("Servo Voltage: %d", Voltage);
+        log_d("Servo Voltage: %d", Voltage);
     } else {
-        DBG("read Voltage err");
+        log_d("read Voltage err");
     }
 
     Temper = ST3215Motor.ReadTemper(servoId);
     if (Temper != -1) {
-        DBG("Servo temperature: %d", Temper);
+        log_d("Servo temperature: %d", Temper);
     } else {
-        DBG("read temperature err");
+        log_d("read temperature err");
     }
 
     Speed = ST3215Motor.ReadSpeed(servoId);
     if (Speed != -1) {
-        DBG("Servo Speed: %d", Speed);
+        log_d("Servo Speed: %d", Speed);
     } else {
-        DBG("read Speed err");
+        log_d("read Speed err");
     }
 
     Load = ST3215Motor.ReadLoad(servoId);
     if (Load != -1) {
-        DBG("Servo Load: %d", Load);
+        log_d("Servo Load: %d", Load);
     } else {
-        DBG("read Load err");
+        log_d("read Load err");
     }
 
     Current = ST3215Motor.ReadCurrent(servoId);
     if (Current != -1) {
-        DBG("Servo Current: %d", Current);
+        log_d("Servo Current: %d", Current);
     } else {
-        DBG("read Current err");
+        log_d("read Current err");
     }
 
     Move = ST3215Motor.ReadMove(servoId);
     if (Move != -1) {
-        DBG("Servo Move: %d", Move);
+        log_d("Servo Move: %d", Move);
     } else {
-        DBG("read Move err");
+        log_d("read Move err");
     }
-    DBG("");
+    log_d("");
 }
 
 void MotorApp::cmdTestMove() {
-    DBG("TestMode: muovo il servo avanti e indietro (ID=%d)", servoId);
+    log_d("TestMode: muovo il servo avanti e indietro (ID=%d)", servoId);
     for (int i = 0; i < 3; ++i) { // Esegui avanti/indietro 3 volte per evitare loop infinito
         // Avanti
         ST3215Motor.RegWritePosEx(servoId, 4095, 3400, 50);
         // Se vuoi anche il secondo servo, decommenta la riga sotto:
         // ST3215Motor.RegWritePosEx(2, 4095, 3400, 50);
         ST3215Motor.RegWriteAction();
-        DBG("Servo %d -> 4095", servoId);
+        log_d("Servo %d -> 4095", servoId);
         delay(3000);
 
         // Indietro
@@ -453,14 +453,14 @@ void MotorApp::cmdTestMove() {
         // Se vuoi anche il secondo servo, decommenta la riga sotto:
         // ST3215Motor.RegWritePosEx(2, 0, 3400, 50);
         ST3215Motor.RegWriteAction();
-        DBG("Servo %d -> 0", servoId);
+        log_d("Servo %d -> 0", servoId);
         delay(3000);
     }
-    DBG("TestMode completato");
+    log_d("TestMode completato");
 }
 
 void MotorApp::cmdTestSync() {
-    DBG("TestSync: muovo due servi in modo sincrono avanti e indietro (ID=1,2)");
+    log_d("TestSync: muovo due servi in modo sincrono avanti e indietro (ID=1,2)");
     byte ID[2] = {1, 2};
     s16 Position[2];
     u16 Speed[2] = {3400, 3400};
@@ -470,13 +470,13 @@ void MotorApp::cmdTestSync() {
     Position[0] = 3000;
     Position[1] = 3000;
     ST3215Motor.SyncWritePosEx(ID, 2, Position, Speed, ACC);
-    DBG("Entrambi i servi -> 3000");
+    log_d("Entrambi i servi -> 3000");
     delay(2000);
 
     // Indietro
     Position[0] = 100;
     Position[1] = 100;
     ST3215Motor.SyncWritePosEx(ID, 2, Position, Speed, ACC);
-    DBG("Entrambi i servi -> 100");
+    log_d("Entrambi i servi -> 100");
     delay(2000);
 }

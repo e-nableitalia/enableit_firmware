@@ -6,7 +6,7 @@
 
 #define BOARD_TEST "boardtest"
 
-class BoardTest : public BoardApp {
+class BoardTest : public enableit::BoardApp {
 public:
     void enter();
     void leave();
@@ -23,7 +23,7 @@ private:
     void setupINA219(); // Function to set up INA219
     void cmdPolling(); // New command for polling mode
 
-    CommandParser<BoardTest> parser;
+    ConsoleCommandParser<BoardTest> parser;
 };
 
 #endif

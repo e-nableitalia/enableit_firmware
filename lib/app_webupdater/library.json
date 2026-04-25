@@ -1,0 +1,20 @@
+{
+  "name": "enableit-app-webupdater",
+  "version": "1.0.0",
+  "description": "Web Updater application for enable.it platform, providing firmware update and file management via web interface.",
+  "keywords": "enableit, web, updater, ota, application, firmware, file manager",
+  "authors": [
+    {
+      "name": "Alberto Navatta",
+      "email": "alberto@e-nableitalia.it"
+    }
+  ],
+  "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
+  "homepage": "https://e-nable.it/",
+  "dependencies": {
+    "enableit-platform": "*",
+    "esphome/ESPAsyncWebServer-esphome": "^3.0.0"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}

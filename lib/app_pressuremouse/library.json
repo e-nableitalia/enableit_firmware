@@ -1,0 +1,20 @@
+{
+  "name": "enableit-app-pressuremouse",
+  "version": "1.0.0",
+  "description": "Pressure Mouse application for enable.it platform, simulating a mouse click based on pressure sensor input.",
+  "keywords": "enableit, pressure, mouse, application, sensor, ble",
+  "authors": [
+    {
+      "name": "Alberto Navatta",
+      "email": "alberto@e-nableitalia.it"
+    }
+  ],
+  "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
+  "homepage": "https://e-nable.it/",
+  "dependencies": {
+    "enableit-platform": "*",
+    "t-vk/ESP32 BLE Mouse": "^0.3.1"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}

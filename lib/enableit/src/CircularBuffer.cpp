@@ -25,7 +25,7 @@ void CircularBuffer::size(int s, int len, int frame) {
         vStreamBufferDelete(m_streambuffer);
     }
     if (m_size > 0) {
-        DBG("Allocated buffer, size[%d]", m_size);
+        log_d("Allocated buffer, size[%d]", m_size);
         m_buffer = (uint8_t *) malloc(m_size + 1);
         for (int i = 0; i < m_size; i++)
             m_buffer[i] = 0;
@@ -61,7 +61,7 @@ int CircularBuffer::avail() {
 }
 
 void CircularBuffer::dump() {
-    DBG("Buffer: avail(%d), datain(%d), dataout(%d)",
+    log_d("Buffer: avail(%d), datain(%d), dataout(%d)",
          xStreamBufferBytesAvailable( m_streambuffer ),
          m_datain,
          m_dataout

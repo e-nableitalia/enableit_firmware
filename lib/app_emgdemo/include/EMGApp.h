@@ -1,0 +1,65 @@
+//
+// Reboot App
+// Simple app performing a countdown and then rebooting the board
+//
+// Author: A.Navatta / e-Nable Italia
+
+#pragma once
+
+#include <enableit.h>
+#include <Console.h>
+#include <BoardApp.h>
+
+#include <CommandParser.h>
+
+#include <SerialEmg.h>
+
+#include <RTPPackets.h>
+
+#define APP_EMG      "emgdemo"
+
+class EMGApp : public BoardApp {
+    void enter();
+    void leave();
+    void process();
+
+    void cmdSetup();
+    void cmdDestHost();
+    void cmdReadData();
+    void cmdWrite();
+    void cmdRead();
+    void cmdSignalHigh();
+    void cmdSignalLow();
+    void cmdReboot();
+    void cmdUpdate();
+    void cmdHelp();
+    void cmdTest();
+    void cmdSource();
+    void cmdGain();
+    void cmdEnable();
+    void cmdDisable();
+    void cmdMode();
+    void cmdStatus();
+    void cmdBuffer();
+    void cmdSequence();
+    void cmdOffset();
+    void cmdListApps();
+    void cmdSwitchApp();
+
+    void sendHost(String _host,int remotePort, int frame, int delay);
+
+    const char *name() { return APP_EMG; }
+    
+    SerialEmg   emg;
+    long        buffer[9];
+    double      offset;
+    bool        polling;
+    bool        streaming;
+    bool        offset_mode;
+    double      alpha;
+    double      average;
+    int         channel;
+    int         delay;
+    RTPPacket   packet;
+    ConsoleCommandParser<EMGApp> parser;
+};

@@ -2,10 +2,7 @@
 // CommandParser: Simple template command line commands parser
 //
 // Author: A.Navatta / e-Nable Italia
-
-#ifndef COMMAND_PARSER_H
-
-#define COMMAND_PARSER_H
+#pragma once
 
 #include <Arduino.h>
 #include <Console.h>
@@ -22,35 +19,42 @@ class CommandParser {
 public:
     CommandParser();
     void init(TClass *i);
-    bool poll();
     void add(const char *command, const char *help, void (TClass::*fpt)());
-    void display();
+    virtual void parseLine(char *buffer);
+    virtual bool execute();
     int getArgs() { return argc; }
     int getInt(int pos);
     const char *getString(int pos);
     bool getBool(int pos);
-    const char *getCommand(int i);
+    const char *getCommand();
     const char *getHelp(int i);
-    void parseLine(char *buffer);    
-private:
+protected:
     void parse();
-
     char line[BUFFER_MAX];
-    int row;
     char *argv[MAX_ARGS];
     uint8_t argc;
-
-    bool human;
-    bool prompt;
-    
     struct {
         const char *cmd;
         const char *help;
         void (TClass::*fpt)();
     } command_table[MAX_COMMANDS];
     TClass *ptrObj;
+    int commandIndex; // index of matched command, -1 if none
+};
+
+template <class TClass>
+class ConsoleCommandParser : public CommandParser<TClass> {
+public:
+    ConsoleCommandParser();
+    virtual void parseLine(char *buffer) override;
+    virtual bool execute() override;
+    void poll();
+    void display();
+private:
+    int row;
+    bool human;
+    bool prompt;
 };
 
 #include <CommandParser.inl>
-
-#endif // COMMAND_PARSER_H
+// --- CommandParser inline functions ---

@@ -1,0 +1,19 @@
+{
+  "name": "enableit-app-otaupdater",
+  "version": "1.0.0",
+  "description": "OTA Updater application for enable.it platform, providing firmware update via HTTPS.",
+  "keywords": "enableit, ota, updater, application, firmware, update",
+  "authors": [
+    {
+      "name": "Alberto Navatta",
+      "email": "alberto@e-nableitalia.it"
+    }
+  ],
+  "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
+  "homepage": "https://e-nable.it/",
+  "dependencies": {
+    "enableit-platform": "*"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}

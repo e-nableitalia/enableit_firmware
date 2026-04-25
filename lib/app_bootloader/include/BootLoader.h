@@ -1,0 +1,75 @@
+//
+// bootloader: Boot loader application, handles:
+// * board initial config
+// * save/load of config in flash
+// * wifi configuration (Station or Access Point)
+// * boot procedure & console config application
+//
+// Author: A.Navatta / e-Nable Italia
+
+#ifndef BOOTLOADER_H
+
+#define BOOTLOADER_H
+
+#include <BoardApp.h>
+
+// #include <enableit.h>
+// #include <SPI.h>
+// #include <Board.h>
+// #include <Config.h>
+// #include <RuntimeManager.h>
+// #include <Console.h>
+
+#include <CommandParser.h>
+#define FW_RELEASE "1.0"
+
+#define FWREV    FW_RELEASE "." __DATE__ "." __TIME__
+
+#define BUTTON_PIN  GPIO_NUM_0
+//#define LED_PIN     GPIO_NUM_25
+#define WIFI_CHECK_DELAY            500 // 500ms delay
+#define MAX_WIFI_CONNECT_ATTEMPTS   20 // 10 attempts * 500ms => 5 seconds
+
+class BootLoader {
+public:
+    BootLoader();
+
+    enum BootState {
+        WAIT_USERINPUT,
+        WAIT_COMMAND,
+        WAIT_COMMAND_PRI
+    } bootState;
+
+    void init(BoardApp *s);
+    void fini();
+
+    void run();
+private:
+    void waitUserTimeout();
+
+    void cmdBoot();
+    void cmdReboot();
+    void cmdHelp();
+    void cmdInfo();
+    void cmdSet();
+    void cmdWifion();
+    void cmdOtaUpdate();
+    void cmdEnable();
+    void cmdDisable();
+    void cmdSave();
+    void cmdSetSecretKey();
+    void cmdErase();
+    void cmdUnlock();
+    void cmdRun();
+    void cmdList();
+
+    void interactiveMode();
+
+    unsigned long start;
+    enableit::BoardApp *state;
+
+    ConsoleCommandParser<BootLoader> parser;
+    bool devMode;
+};
+
+#endif // BOOTLOADER_H

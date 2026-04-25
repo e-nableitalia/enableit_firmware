@@ -1,0 +1,20 @@
+{
+  "name": "enableit-app-kinetichand",
+  "version": "1.0.0",
+  "description": "Kinetic Hand application for enable.it platform, providing pressure sensor-based hand control and servo actuation.",
+  "keywords": "enableit, kinetic, hand, application, servo, pressure",
+  "authors": [
+    {
+      "name": "Alberto Navatta",
+      "email": "alberto@e-nableitalia.it"
+    }
+  ],
+  "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
+  "homepage": "https://e-nable.it/",
+  "dependencies": {
+    "enableit-platform": "*",
+    "madhephaestus/ESP32Servo": "^3.0.9"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}

@@ -4,9 +4,7 @@
 //
 // Author: A.Navatta / e-Nable Italia
 
-#ifndef REBOOTSTATE_H
-
-#define REBOOTSTATE_H
+#pragma once
 
 #include <Arduino.h>
 #include <Console.h>
@@ -16,26 +14,28 @@
 #define REBOOT_LOOPS  5
 #define REBOOT_DELAY    1 // seconds
 
+using namespace enableit;
+
 class RebootState : public BoardApp {
     void enter() {
-        DBG("enter reboot state");
+        log_d("enter reboot state");
     }
     void leave() {
-        DBG("leave reboot state");
+        log_d("leave reboot state");
     }
 
     void process() {
-        DBG("process");
-        LOG("");
+        log_d("process");
+        log_i("");
         for (int i = REBOOT_LOOPS; i > 0; i--) {
-            LOG("Rebooting in %d seconds", i);
+            log_i("Rebooting in %d seconds", i);
             sleep(REBOOT_DELAY);
         }
-        LOG("Rebooting now");
+        log_i("Rebooting now");
         ESP.restart();
     }
 
     const char *name() { return STATE_REBOOT; }
 };
 
-#endif // REBOOTSTATE_H
+

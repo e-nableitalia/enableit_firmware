@@ -17,9 +17,9 @@ void SMotor::init(uint8_t servoId)
 void SMotor::static_init(int sRX, int sTX)
 {
     scSerial = &Serial2;
-    DBG("Initializing Serial2 for SMotor");
+    log_d("Initializing Serial2 for SMotor");
     if (scSerial == nullptr) {
-        DBG("Seriale non inizializzata!");
+        log_d("Seriale non inizializzata!");
         return;
     }
     //scSerial->begin(1000000, SERIAL_8N1, sRX, sTX); // Set baudrate and pins

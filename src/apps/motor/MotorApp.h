@@ -9,9 +9,8 @@
 #define MOTOR_APP "motor"
 
 //#define USE_TWO_MOTORS 1
-
-#define MOTOR1_IN1       G38
-#define MOTOR1_IN2       G39
+#define MOTOR1_IN1       GPIO_NUM_38
+#define MOTOR1_IN2       GPIO_NUM_39
 #define MOTOR1_ISENSE    -1 // temp disable motor isense G5
 
 #ifdef USE_TWO_MOTORS
@@ -23,13 +22,14 @@
 #define MOTOR2_ISENSE    G8
 #else
 #define NUM_MOTORS 1
-#define MOTOR1_WIPER     G8
-#define BUS_SERIAL_TX    G6
-#define BUS_SERIAL_RX    G7
+#define MOTOR1_WIPER     GPIO_NUM_8
+#define BUS_SERIAL_TX    GPIO_NUM_6
+#define BUS_SERIAL_RX    GPIO_NUM_7
 #define SERVO_ID          1
 #endif
 
-class MotorApp : public BoardApp {
+
+class MotorApp : public enableit::BoardApp {
 public:
     void enter();
     void leave();
@@ -60,7 +60,7 @@ private:
     void cmdTestMove();       // <--- test movimento avanti/indietro
     void cmdTestSync();       // <--- test movimento sincrono di due servi
 
-    CommandParser<MotorApp> parser;
+    ConsoleCommandParser<MotorApp> parser;
     int speed = 100;
     bool direction = false;
     int counter = 0;

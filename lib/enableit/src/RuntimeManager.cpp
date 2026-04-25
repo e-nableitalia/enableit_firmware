@@ -1,0 +1,282 @@
+#include <memory>
+#include <SystemInfoProvider.h>
+#include <ProtocolProcessor.h>
+#include <BtServer.h>
+#include "RuntimeManager.h"
+#include <WiFi.h>
+#include <WifiHal.h>
+#include <ESPmDNS.h>
+#include <BleUuids.h>
+#if defined(INSIGHTS_SUPPORT)
+#include <Insights.h>
+#endif
+
+
+#define WIFI_CHECK_DELAY            500 // 500ms delay
+#define MAX_WIFI_CONNECT_ATTEMPTS   20
+
+#if THINGSBOARD_SUPPORT
+#include <ThingsBoard.h>
+#endif
+
+namespace enableit {
+
+RuntimeManager::RuntimeManager(Board& board)
+    : board_(board)
+#if THINGSBOARD_SUPPORT
+    , tb_(wifiClient_, MAX_MESSAGE_SIZE)
+#endif
+{}
+
+bool RuntimeManager::enableWifi(const BootConfig& config) {
+    if (wifiOn_) {
+        log_w("WiFi already active");
+        return true;
+    }
+
+    log_d("Activating WIFI");
+    bool started = false;
+    if (config.apMode) {
+        log_i("Activating WiFi AP SSID[%s]", config.wifiSsid.c_str());
+        WifiConfig cfg{config.wifiSsid.c_str(), config.wifiPassword.c_str()};
+        started = board_.wifi().startAp(cfg);
+    } else {
+        log_i("Wifi init, connecting to[%s]", config.wifiSsid.c_str());
+        WifiConfig cfg{config.wifiSsid.c_str(), config.wifiPassword.c_str()};
+        started = board_.wifi().startSta(cfg);
+
+        int count = 0;
+        while ((WiFi.status() != WL_CONNECTED) && (count < MAX_WIFI_CONNECT_ATTEMPTS)) {
+            delay(WIFI_CHECK_DELAY);
+            log_i(".");
+            count++;
+        }
+        log_i("");
+        if (WiFi.status() == WL_CONNECTED) {
+            log_i("WiFi connected");
+            ipAddress_ = WiFi.localIP();
+            log_i("IP address: [%s]", ipAddress_.toString().c_str());
+        } else {
+            log_e("Wifi init failed");
+            log_i("Scanning for known wifi");
+            int n = WiFi.scanNetworks();
+            log_i("Found %d networks", n);
+            for (int i = 0; i < n; i++) {
+                log_i("SSID[%s] RSSI[%d], Encryption[%s]", WiFi.SSID(i).c_str(), WiFi.RSSI(i), (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
+            }
+            wifiOn_ = false;
+            return false;
+        }
+    }
+
+    if (!started) {
+        log_e("WiFi HAL failed to start");
+        wifiOn_ = false;
+        return false;
+    }
+
+    // mDNS
+    if (!mdnsOn_) {
+        if (!MDNS.begin(config.mdnsHostname.c_str())) {
+            log_e("Error setting up MDNS responder!");
+        } else {
+            log_i("mDNS responder started");
+            mdnsOn_ = true;
+        }
+    }
+
+#if defined(INSIGHTS_SUPPORT)
+    // Insights
+    if (config.insights && !insightsOn_) {
+        if (Insights.begin(config.insightsKey.c_str())) {
+            log_i("=========================================");
+            log_i("ESP Insights enabled Node ID %s", Insights.nodeID());
+            log_i("=========================================");
+            insightsOn_ = true;
+        } else {
+            log_i("=========================================");
+            log_i("ESP Insights enable failed");
+            log_i("=========================================");
+        }
+    } else if (!config.insights) {
+        log_w("ESP Insights disabled, requires WiFi active to enable it");
+    }
+#endif
+
+    wifiOn_ = true;
+    return true;
+}
+
+void RuntimeManager::disableWifi() {
+    if (!wifiOn_) {
+        log_w("WiFi already deactivated");
+        return;
+    }
+
+    log_i("Deactivating WIFI");
+
+#if defined(INSIGHTS_SUPPORT)
+    if (insightsOn_) {
+        log_i("Stopping insights");
+        Insights.end();
+        insightsOn_ = false;
+    }
+#endif
+
+    // No explicit MDNS stop in ESP-IDF/Arduino, but reset flag
+    mdnsOn_ = false;
+
+    board_.wifi().stop();
+
+    log_i("Wifi disabled");
+    wifiOn_ = false;
+}
+
+bool RuntimeManager::enableBle(String name, String uuid) {
+    if (bleOn_) return true;
+    log_d("Activating BLE");
+    if (uuid.isEmpty()) {
+        // use default service UUID
+        uuid = BleUuids::SERVICE;
+    }
+    // BtServer is started in constructor; if you need to restart, add logic here
+    BtServer::instance().init(name, uuid);
+    bleOn_ = true;
+    return true;
+}
+
+void RuntimeManager::disableBle() {
+    if (!bleOn_) return;
+    BtServer::instance().end();
+    // If BtServer supports stopping, call it here
+    bleOn_ = false;
+}
+
+
+void RuntimeManager::startNormalMode(const BootConfig& config) {
+    enableBle(config.bleDeviceName, config.bleServiceUuid);
+    enableWifi(config);
+}
+
+void RuntimeManager::startProvisioningMode(const BootConfig& config) {
+    enableBle(config.bleDeviceName, config.bleServiceUuid);
+    // For provisioning, you may want AP or STA off; here we disable WiFi
+    disableWifi();
+}
+
+void RuntimeManager::stopAll() {
+    disableBle();
+    disableWifi();
+}
+
+#if defined(THINGSBOARD_SUPPORT)
+bool RuntimeManager::enableThingsBoard(const BootConfig& config) {
+    if (thingsBoardOn_) return true;
+    if (!wifiOn_) {
+        log_w("ThingsBoard: WiFi not active, cannot connect");
+        return false;
+    }
+    if (config.deviceid.isEmpty() || config.thingsboard.isEmpty() || config.devicetoken.isEmpty()) {
+        log_w("ThingsBoard: Missing configuration");
+        return false;
+    }
+    if (!tb_.connected()) {
+        log_d("Connecting to ThingsBoard[%s] with token [%s]", config.thingsboard.c_str(), config.devicetoken.c_str());
+        if (!tb_.connect(config.thingsboard.c_str(), config.devicetoken.c_str(), THINGSBOARD_PORT, config.deviceid.c_str())) {
+            log_e("Failed to connect to ThingsBoard");
+            thingsBoardOn_ = false;
+            return false;
+        }
+        tb_.sendAttributeString("macAddress", WiFi.macAddress().c_str());
+        tb_.sendAttributeInt("rssi", WiFi.RSSI());
+        tb_.sendAttributeString("bssid", WiFi.BSSIDstr().c_str());
+        tb_.sendAttributeString("localIp", WiFi.localIP().toString().c_str());
+        tb_.sendAttributeString("ssid", WiFi.SSID().c_str());
+        tb_.sendAttributeInt("channel", WiFi.channel());
+    }
+    thingsBoardOn_ = tb_.connected();
+    return thingsBoardOn_;
+}
+
+void RuntimeManager::disableThingsBoard() {
+    if (thingsBoardOn_) {
+        tb_.disconnect();
+        thingsBoardOn_ = false;
+    }
+}
+
+bool RuntimeManager::thingsBoardConnected() const {
+    return const_cast<decltype(tb_)&>(tb_).connected();
+}
+#endif
+
+// --- Protocol two-phase init ---
+void RuntimeManager::initProtocols(int count, const BLEConfig config[]) {
+
+    protocol_ = std::unique_ptr<ProtocolProcessor>(
+        new ProtocolProcessor(
+            featureRegistry_
+        )
+    );
+
+    BLEProtocolHandler* handler = new BLEProtocolHandler(*protocol_);
+    // Register BLE protocol channel (using given configs)
+    for (int i = 0; i < count; ++i) {
+        const BLEConfig& cfg = config[i];
+        if (cfg.uuid.length() > 0) {
+            log_i("Registering BLE characteristic UUID[%s] with properties[0x%08X]", cfg.uuid.c_str(), cfg.properties);
+            BtServer::instance().registerCharacteristic(
+                cfg.uuid.c_str(),
+                cfg.properties,
+                handler
+            );
+        }
+    }
+}
+
+void RuntimeManager::registerBleCommandDispatcher(BleCommandDispatcher *c) {
+    if (c)
+        c->init();   
+}
+
+void RuntimeManager::startBle() {
+    BtServer::instance().advertising();
+}
+
+void RuntimeManager::registerFeature(FeatureBase* feature) {
+    featureRegistry_.registerFeature(feature);
+}
+
+void RuntimeManager::unregisterFeature(const char* name) {
+    featureRegistry_.unregisterFeature(name);
+}
+
+FeatureBase* RuntimeManager::getFeature(const char* name) {
+    return featureRegistry_.getFeature(name);
+}
+
+// --- BLEProtocolHandler implementation ---
+BLEProtocolHandler::BLEProtocolHandler(ProtocolProcessor& processor)
+    : processor_(processor) {}
+
+void BLEProtocolHandler::onWrite(BLECharacteristic* ch) {
+    if (!ch) return;
+    std::string value = ch->getValue();
+    if (value.empty()) return;
+    String response;
+    processor_.process(value.c_str(), response);
+    ch->setValue(response.c_str());
+    // Always notify if PROPERTY_NOTIFY is set (no getSubscribedCount available)
+    ch->notify();
+}
+
+void BLEProtocolHandler::onRead(BLECharacteristic* ch) {
+    if (!ch) return;
+    // For demonstration, return a static status or last response if you want to cache it
+    ch->setValue("{\"status\":\"ok\"}");
+}
+
+// Setup RuntimeManager
+RuntimeManager runtime(board);
+
+} // namespace enableit

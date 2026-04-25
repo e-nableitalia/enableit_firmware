@@ -1,0 +1,23 @@
+{
+  "name": "enableit-app-otawifiupdater",
+  "version": "1.0.0",
+  "description": "OTA WiFi Updater Server for enable.it, implementation derived from the Kinetix project by Reivaxy (https://github.com/reivaxy/kinetix). Allows firmware updates via WiFi.",
+  "keywords": "enableit, ota, wifi, upload, server, firmware, kinetix, reivaxy",
+  "authors": [
+    {
+      "name": "Alberto Navatta",
+      "email": "alberto@e-nableitalia.it"
+    }
+  ],
+  "license": "Creative Commons Attribution-NonCommercial 4.0 International Public License",
+  "homepage": "https://e-nable.it/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/e-nableitalia/enableit_firmware"
+  },
+  "dependencies": {
+    "enableit-platform": "*"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}

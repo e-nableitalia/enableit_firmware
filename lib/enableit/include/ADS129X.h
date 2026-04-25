@@ -309,13 +309,13 @@ class ADS129xCommandLock {
     public:
         ADS129xCommandLock(ADS129X *i, bool r = true) : instance(i), restore(r) {
             if (instance->continousMode) {
-                DBG("Stopping SDATAC");
+                log_d("Stopping SDATAC");
                 instance->SDATAC();
             }
         }
         virtual ~ADS129xCommandLock() {
             if ((restore) && (instance->continousMode)) {
-                DBG("Restarting SDATAC");
+                log_d("Restarting SDATAC");
                 instance->RDATAC();
             }
         }

@@ -3,64 +3,95 @@
 //
 // Author: A.Navatta / e-Nable Italia
 
-#ifndef CONSOLE_H
+#pragma once
 
-#define CONSOLE_H
+#include <vector>
+#include <Arduino.h>
+#include <Stream.h>
+#include <ConsoleTransport.h>
 
-#include "Stream.h"
+namespace enableit {
 
 // debug enabled
 #define DEBUG
 #define FORMAT_BUFFERSIZE 1024
 
-//void debug_enable(bool enabled);
-//void console_debug(const bool dbg, const char *info, bool addcr, const char *function, const char *format_str, ...);
-
 #ifdef DEBUG
-#define DBG(...) Console.debug(true, "DBG", true, __func__,  __VA_ARGS__)
-#define DBGNOLF(...) Console.debug(true, "DBG", false, __func__,  __VA_ARGS__)
-#define LOG(...) Console.debug(true, "LOG", true, __func__,  __VA_ARGS__)
-#define ERR(...) Console.debug(false, "ERR", true, __func__,  __VA_ARGS__)
 #define OUTNOLF(...) Console.debug(true, nullptr, false, __func__,  __VA_ARGS__)
 #define OUT(...) Console.debug(false, nullptr, true, nullptr,  __VA_ARGS__)
 #else
-#define DBG(...)
-#define DBGNOLF(...)
-#define LOG(...) Console.debug(true, "LOG", true, __func__,  __VA_ARGS__)
-#define ERR(...) Console.debug(false, "ERR", true, __func__,  __VA_ARGS__)
 #define OUTNOLF(...) Console.debug(true, nullptr, false, __func__,  __VA_ARGS__)
 #define OUT(...) Console.debug(false, nullptr, true, nullptr,  __VA_ARGS__)
 #endif
 
-class ConsoleWrapper : public Stream {
+class TelnetConsoleTransport : public ConsoleTransport {
+public:
+    TelnetConsoleTransport();
+    void begin(int baudRate) override {}
+    bool available() override;
+    int read() override;
+    size_t write(uint8_t c) override;
+    bool isConnected() override;
+    int peek() override;
+    ConsolePriority getPriority() const override { return PRIORITY_TELNET; }
+    bool needsPoll() const override { return true; }
+    void poll() override;
+    void enable(bool enable);
+    // Telnet event handlers
+    void onConnect();
+    void onDisconnect();
+    void onReconnect();
+    void onConnectionAttempt();
+    void onInput(String str);
 
+    // Static callback wrappers for ESPTelnetStream
+    static void onConnectStatic(String ip);
+    static void onDisconnectStatic(String ip);
+    static void onReconnectStatic(String ip);
+    static void onConnectionAttemptStatic(String ip);
+    static void onInputReceivedStatic(String str);
+    static TelnetConsoleTransport* instance() { return _instance; };
+
+private:
+    bool connected = false;
+    static TelnetConsoleTransport* _instance;
+};
+
+class ConsoleWrapper : public Stream {
 public:
     void init(int baudRate, bool debug, bool telnet = false);
-
     void debug(const bool dbg, const char *prefix, bool addlf, const char *function, const char *format_str, ...);
     void echo(uint8_t c);
-
-    void pool();
+    void poll();
     // Stream support functions
     virtual size_t write(uint8_t c);
     virtual int available();
     virtual int read();
     virtual int peek();
 
-    // telnet management functions
-    void enableTelnet(bool value);
-    static void onTelnetConnect(String ip);
-    static void onTelnetDisconnect(String ip);
-    static void onTelnetReconnect(String ip);
-    static void onTelnetConnectionAttempt(String ip);
-    static void onTelnetInput(String ip);
+    // Transport registration
+    void registerTransport(ConsoleTransport* transport, ConsolePriority priority);
+    void unregisterTransport(ConsoleTransport* transport);
+
+    // Event notification from transports
+    void onTransportConnected(ConsoleTransport* transport);
+    void onTransportDisconnected(ConsoleTransport* transport);
+
+    // Select active transport
+    void selectActiveTransport();
+    ConsoleTransport* getActiveTransport() const;
+
 private:
-    void telnetSetup();
+    struct TransportEntry {
+        ConsoleTransport* transport;
+        ConsolePriority priority;
+        ConsoleTransportState state;
+    };
+    std::vector<TransportEntry> transports;
+    ConsoleTransport* activeTransport = nullptr;
     bool debug_enabled;
-    bool telnet;
-    static bool telnet_connected;
 };
 
 extern ConsoleWrapper Console;
 
-#endif // CONSOLE_H
+} // namespace enableit

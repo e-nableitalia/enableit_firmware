@@ -182,12 +182,12 @@ void BioTelemetry::poll() {
     if (_streaming_enable) {
         for (int channel=0; channel < TELEMETRY_MAX_CHANNELS; channel++) {
             if ((channel_enabled[channel]) && (producers[channel])) {
-                DBG("Channel(%d)",channel);
+                log_d("Channel(%d)",channel);
                 uint8_t *buffer = telemetry.getBuffer(channel);
                 //C_DEBUG("consume");
                 int res = producers[channel]->consume(buffer,channel_pktsize[channel]);
                 if (res) {
-                    DBG("prepared data(%d)",res);
+                    log_d("prepared data(%d)",res);
                     channel_pktready[channel] = res;
                     //BioTelemetry.sendBuffer(channel,res);
                 }
