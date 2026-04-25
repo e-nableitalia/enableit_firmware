@@ -1,7 +1,11 @@
 #include <Arduino.h>
+#include <BoardApp.h>
+#include <BoardManager.h>
 #include "BoardTest.h"
 #include <Wire.h>
 #include <Adafruit_INA219.h>
+
+BOARDAPP_INSTANCE(BoardTest);
 
 #define CMD_TEST "* test, run a test command"
 #define CMD_HELP "* help, list available commands"

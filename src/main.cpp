@@ -15,9 +15,13 @@
 ENABLE_BOARD_APP(OtaApp);
 ENABLE_BOARD_APP(DemoApp);
 ENABLE_BOARD_APP(KinetixApp);
+DECLARE_BOARDAPP(BoardTest);
+DECLARE_BOARDAPP(MotorApp);
 
 void setup() {
-    ENABLEIT_BOOT("kinetix");
+    REGISTER_BOARD_APP(BoardTest);
+    REGISTER_BOARD_APP(MotorApp);
+    ENABLEIT_BOOT("motor");
 }
 
 void loop() {

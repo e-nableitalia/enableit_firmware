@@ -1,5 +1,11 @@
 #include <Motor.h>
+#include <BoardApp.h>
+#include <BoardManager.h>
+#include <Board.h>
+#include <WiFi.h>
 #include "MotorApp.h"
+
+BOARDAPP_INSTANCE(MotorApp);
 
 #define CMD_FORWARD "* forward, move motor forward"
 #define CMD_REVERSE "* reverse, move motor reverse"
@@ -21,6 +27,9 @@
 #define CMD_FEEDBACK "* feedback, stampa tutti i parametri del servo corrente"
 #define CMD_TESTMOVE "* testmove, muove il servo avanti e indietro in ciclo"
 #define CMD_TESTSYNC "* testsync, muove due servi in modo sincrono avanti e indietro"
+#define CMD_OTA "* ota, switch to OTA update app"
+#define CMD_BOOT "* boot, switch to bootloader for board configuration"
+#define CMD_REBOOT "* reboot, reboot the board"
 
 void MotorApp::enter() {
     log_d("enter MotorApp");
@@ -45,6 +54,9 @@ void MotorApp::enter() {
     parser.add("feedback", CMD_FEEDBACK, &MotorApp::cmdFeedback);
     parser.add("testmove", CMD_TESTMOVE, &MotorApp::cmdTestMove);
     parser.add("testsync", CMD_TESTSYNC, &MotorApp::cmdTestSync);
+    parser.add("ota", CMD_OTA, &MotorApp::cmdOta);
+    parser.add("boot", CMD_BOOT, &MotorApp::cmdBoot);
+    parser.add("reboot", CMD_REBOOT, &MotorApp::cmdReboot);
     // Initialize motor with DRV8411 and without speed control
     log_d("Initializing motors");
     log_d("Initializing motor #1");
@@ -68,6 +80,12 @@ void MotorApp::enter() {
     //     log_d("Servo ping failed");
     // }
     #endif
+
+    // Display init
+    enableit::board.getDisplay().setTextSize(2);
+    enableit::board.getDisplay().setTitle("MotorTestApp");
+    enableit::board.getDisplay().setTextSize(1);
+    enableit::board.getDisplay().setLine(1, "IP: " + WiFi.localIP().toString());
 }
 
 void MotorApp::leave() {
@@ -121,6 +139,9 @@ void MotorApp::cmdHelp() {
     log_d(CMD_FEEDBACK);
     log_d(CMD_TESTMOVE);
     log_d(CMD_TESTSYNC);
+    log_d(CMD_OTA);
+    log_d(CMD_BOOT);
+    log_d(CMD_REBOOT);
     log_d("* Opzioni attuali: servoId=%d, servoBaudrate=%ld", servoId, servoBaudrate);
 }
 
@@ -479,4 +500,19 @@ void MotorApp::cmdTestSync() {
     ST3215Motor.SyncWritePosEx(ID, 2, Position, Speed, ACC);
     log_d("Entrambi i servi -> 100");
     delay(2000);
+}
+
+void MotorApp::cmdOta() {
+    log_d("Switching to OTA update app");
+    changeApp(APP_OTAUPDATE);
+}
+
+void MotorApp::cmdBoot() {
+    log_d("Switching to bootloader");
+    changeApp(APP_BOOT);
+}
+
+void MotorApp::cmdReboot() {
+    log_d("Rebooting board");
+    changeApp(STATE_REBOOT);
 }

@@ -2,6 +2,7 @@
 #define MOTOR_APP_H
 
 #include <BoardApp.h>
+#include <BoardManager.h>
 #include <CommandParser.h>
 #include <Motor.h>
 #include <SMotor.h>
@@ -59,6 +60,9 @@ private:
     void cmdFeedback();       // <--- stampa i parametri del servo corrente
     void cmdTestMove();       // <--- test movimento avanti/indietro
     void cmdTestSync();       // <--- test movimento sincrono di due servi
+    void cmdOta();            // <--- switch to OTA update app
+    void cmdBoot();           // <--- switch to bootloader
+    void cmdReboot();         // <--- reboot the board
 
     ConsoleCommandParser<MotorApp> parser;
     int speed = 100;

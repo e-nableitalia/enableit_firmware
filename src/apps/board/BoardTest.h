@@ -2,6 +2,7 @@
 #define BOARD_TEST_H
 
 #include <BoardApp.h>
+#include <BoardManager.h>
 #include <CommandParser.h>
 
 #define BOARD_TEST "boardtest"
