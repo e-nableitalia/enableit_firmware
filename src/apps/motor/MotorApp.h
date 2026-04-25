@@ -10,6 +10,7 @@
 #define MOTOR_APP "motor"
 
 //#define USE_TWO_MOTORS 1
+#ifdef USE_LEGACY_MOTOR_BOARD
 #define MOTOR1_IN1       GPIO_NUM_38
 #define MOTOR1_IN2       GPIO_NUM_39
 #define MOTOR1_ISENSE    -1 // temp disable motor isense G5
@@ -28,7 +29,13 @@
 #define BUS_SERIAL_RX    GPIO_NUM_7
 #define SERVO_ID          1
 #endif
-
+#else
+// New board: serial motor control only via G38(TX)/G39(RX), no H-bridge motors
+#define NUM_MOTORS       0
+#define BUS_SERIAL_TX    GPIO_NUM_38
+#define BUS_SERIAL_RX    GPIO_NUM_39
+#define SERVO_ID         1
+#endif
 
 class MotorApp : public enableit::BoardApp {
 public:
@@ -70,7 +77,11 @@ private:
     int counter = 0;
     int servoId = SERVO_ID;           // <--- variabile dinamica per id
     long servoBaudrate = 1000000;     // <--- variabile dinamica per baudrate (default 1Mbps)
+#if NUM_MOTORS > 0
     Motor PQ12Motor[NUM_MOTORS];
+#else
+    Motor PQ12Motor[1]; // placeholder: no H-bridge on this board
+#endif
     SMotor ST3215Motor;
 };
 
