@@ -4,8 +4,8 @@
 #include <BoardApp.h>
 #include <BoardManager.h>
 #include <CommandParser.h>
-#include <Motor.h>
-#include <SMotor.h>
+#include <PQ12Actuator.h>
+#include <STMotor.h>
 
 #define MOTOR_APP "motor"
 
@@ -46,7 +46,6 @@ public:
     const char *name() { return MOTOR_APP; }
 
 private:
-    int selectedMotor = 0;
     void cmdForward();
     void cmdReverse();
     void cmdGetPosition();
@@ -75,14 +74,22 @@ private:
     int speed = 100;
     bool direction = false;
     int counter = 0;
-    int servoId = SERVO_ID;           // <--- variabile dinamica per id
-    long servoBaudrate = 1000000;     // <--- variabile dinamica per baudrate (default 1Mbps)
+    int selectedMotor = 0;
+    int servoId = SERVO_ID;
+    long servoBaudrate = 1000000;
+
+    // ── Generic motor registry ────────────────────────────────────────────────
+    // All configured motors are registered here at enter() time.
+    // Generic commands (forward/reverse/stop/…) dispatch via this array.
+    enableit::Motor* _motors[4] = {};
+    int _motorCount = 0;
+
 #if NUM_MOTORS > 0
-    Motor PQ12Motor[NUM_MOTORS];
+    enableit::PQ12Actuator PQ12Motor[NUM_MOTORS];
 #else
-    Motor PQ12Motor[1]; // placeholder: no H-bridge on this board
+    enableit::PQ12Actuator PQ12Motor[1]; // placeholder: no H-bridge on this board
 #endif
-    SMotor ST3215Motor;
+    enableit::STMotor ST3215Motor;
 };
 
 #endif

@@ -1,8 +1,11 @@
-#include <Motor.h>
-#include <Console.h>
-#include <ESP32PWM.h>
+// Motor.cpp — implementation moved to PQ12Actuator.cpp
+// This file is intentionally empty.
 
-Motor::Motor()
+// suppress empty translation unit warning
+namespace { constexpr int _motor_cpp_placeholder = 0; }
+
+#if 0  // archived
+void _motor_cpp_archived()
 {
 }
 
@@ -200,31 +203,5 @@ int Motor::getPosition()
     }
 }
 
-void Motor::poll()
-{
-#ifdef MOTOR_POSITION_PROTECTION
-    if (wiperPin != -1) {
-        position = analogRead(wiperPin);
-        if ((position > MOTOR_HIGH_THRESHOLD) && (direction == FORWARD)) {
-            stop("Poll, reverse motor protection enabled");
-            return;
-        } else if ((position < MOTOR_LOW_THRESHOLD) && (direction == REVERSE)) {
-            stop("Poll, forward motor protection enabled");
-            return;
-        }
-    }
-#endif
-    if (isensePin != -1) {
-        current = analogRead(isensePin);
-        if (current > current_max) {
-            current_max = current;
-            log_d("Motor current(%d), max(%d)", current, current_max);
-        }
-#ifdef MOTOR_CURRENT_PROTECTION
-        if (current > MOTOR_CURRENT_THRESHOLD) {
-            stop("Poll, current limit reached");
-            return;
-        }
-#endif
-    }
-}
+} // end archived
+#endif  // archived
