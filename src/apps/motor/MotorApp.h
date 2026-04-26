@@ -6,6 +6,7 @@
 #include <CommandParser.h>
 #include <PQ12Actuator.h>
 #include <STMotor.h>
+#include <PwmServoMotor.h>
 
 #define MOTOR_APP "motor"
 
@@ -35,6 +36,9 @@
 #define BUS_SERIAL_TX    GPIO_NUM_38
 #define BUS_SERIAL_RX    GPIO_NUM_39
 #define SERVO_ID         1
+#define PWM_SERVO_PIN    GPIO_NUM_7   // G7 — traditional RC/PWM servo
+#define PWM_SERVO2_PIN   GPIO_NUM_6   // G6 — traditional RC/PWM servo
+#define PWM_SERVO3_PIN   GPIO_NUM_5   // G5 — traditional RC/PWM servo
 #endif
 
 class MotorApp : public enableit::BoardApp {
@@ -56,6 +60,7 @@ private:
     void cmdSetPin(); // New command for setting pin state
     void cmdSleep();
     void cmdSelectMotor();
+    void cmdListMotors();
     void cmdGetServoInfo();
     void cmdPingServos(); // <--- nuovo comando
     void cmdScan();
@@ -81,7 +86,7 @@ private:
     // ── Generic motor registry ────────────────────────────────────────────────
     // All configured motors are registered here at enter() time.
     // Generic commands (forward/reverse/stop/…) dispatch via this array.
-    enableit::Motor* _motors[4] = {};
+    enableit::Motor* _motors[6] = {};
     int _motorCount = 0;
 
 #if NUM_MOTORS > 0
@@ -89,7 +94,10 @@ private:
 #else
     enableit::PQ12Actuator PQ12Motor[1]; // placeholder: no H-bridge on this board
 #endif
-    enableit::STMotor ST3215Motor;
+    enableit::STMotor       ST3215Motor;
+    enableit::PwmServoMotor  PwmServo;   // G7
+    enableit::PwmServoMotor  PwmServo2;  // G6
+    enableit::PwmServoMotor  PwmServo3;  // G5
 };
 
 #endif

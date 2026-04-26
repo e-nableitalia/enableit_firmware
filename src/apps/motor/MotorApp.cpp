@@ -17,6 +17,7 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_SET_PIN "* setpin <pin> <state>, set pin state (high/low)"
 #define CMD_SLEEP "* sleep, put the motor in sleep mode"
 #define CMD_SELECT_MOTOR "* selectmotor <n>, select active motor (0/1)"
+#define CMD_LIST_MOTORS  "* listmotors, list all available motors"
 #define CMD_GET_SERVO_INFO "* getservoinfo, leggi info dal servo ST3215"
 #define CMD_PING_SERVOS "* pingservos, ping broadcast su tutti i servo"
 #define CMD_SCAN "* scan, cerca il servo su vari baudrate"
@@ -44,6 +45,7 @@ void MotorApp::enter() {
     parser.add("setpin", CMD_SET_PIN, &MotorApp::cmdSetPin);
     parser.add("sleep", CMD_SLEEP, &MotorApp::cmdSleep);
     parser.add("selectmotor", CMD_SELECT_MOTOR, &MotorApp::cmdSelectMotor);
+    parser.add("listmotors",  CMD_LIST_MOTORS,  &MotorApp::cmdListMotors);
     parser.add("getservoinfo", CMD_GET_SERVO_INFO, &MotorApp::cmdGetServoInfo); 
     parser.add("pingservos", CMD_PING_SERVOS, &MotorApp::cmdPingServos);
     parser.add("scan", CMD_SCAN, &MotorApp::cmdScan);
@@ -86,6 +88,16 @@ void MotorApp::enter() {
     for (int i = 0; i < NUM_MOTORS; i++)
         _motors[_motorCount++] = &PQ12Motor[i];
     #endif
+    // PWM servos on G7, G6, G5 — explicit LEDC channels 1,2,3 (ch 0 = M5GFX backlight)
+    PwmServo.init(PWM_SERVO_PIN,  1);
+    PwmServo.begin();
+    _motors[_motorCount++] = &PwmServo;
+    PwmServo2.init(PWM_SERVO2_PIN, 2);
+    PwmServo2.begin();
+    _motors[_motorCount++] = &PwmServo2;
+    PwmServo3.init(PWM_SERVO3_PIN, 3);
+    PwmServo3.begin();
+    _motors[_motorCount++] = &PwmServo3;
     selectedMotor = 0;
     OUT("Motors registered: %d", _motorCount);
     for (int i = 0; i < _motorCount; i++)
@@ -208,6 +220,13 @@ void MotorApp::cmdSleep() {
     if (_motorCount == 0) { OUT("No motor configured"); return; }
     _motors[selectedMotor]->disable();
     OUT("[%s] disabled", _motors[selectedMotor]->getType());
+}
+
+void MotorApp::cmdListMotors() {
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    OUT("Available motors (%d):", _motorCount);
+    for (int i = 0; i < _motorCount; i++)
+        OUT("  [%d] %s%s", i, _motors[i]->getType(), i == selectedMotor ? " *" : "");
 }
 
 void MotorApp::cmdSelectMotor() {
