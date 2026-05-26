@@ -7,11 +7,12 @@
 #include <PQ12Actuator.h>
 #include <STMotor.h>
 #include <PwmServoMotor.h>
-#include "Finger.h"
+#include <Finger.h>
 
 #define NUM_FINGERS 5
 
 #define MOTOR_APP "motor"
+#define NUM_FINGERS 5
 
 //#define USE_TWO_MOTORS 1
 #ifdef USE_LEGACY_MOTOR_BOARD
@@ -86,6 +87,7 @@ private:
     void cmdListFingers();    // <--- elenca diti e posizioni
     void cmdSetFingerRange(); // <--- imposta range raw del servo per un dito
     void cmdInvertFinger();   // <--- scambia maxOpen/maxClosed (toggle direzione)
+    void cmdSetHand();        // <--- set hand position for 5 fingers
 
     ConsoleCommandParser<MotorApp> parser;
     int speed = 100;

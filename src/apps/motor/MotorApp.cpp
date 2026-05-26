@@ -7,6 +7,8 @@
 
 BOARDAPP_INSTANCE(MotorApp);
 
+#define CLAMP(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
+
 #define CMD_FORWARD "* forward, move motor forward"
 #define CMD_REVERSE "* reverse, move motor reverse"
 #define CMD_GET_POSITION "* getposition, get motor position"
@@ -38,6 +40,7 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_LIST_FINGERS "* listfingers, elenca diti con posizioni attuali"
 #define CMD_SET_FINGER_RANGE "* setfingerrange <n> <maxOpen> <maxClosed>, imposta range raw servo per dito n"
 #define CMD_INVERT_FINGER   "* invertfinger <n> [0|1], inverte la direzione del motore (default: toggle)"
+#define CMD_SET_HAND "* sethand <thumb> <index> <middle> <ring> <pinky>, imposta posizione relativa delle 5 dita (0=aperto, 100=chiuso)"
 
 void MotorApp::enter() {
     log_d("enter MotorApp");
@@ -64,6 +67,7 @@ void MotorApp::enter() {
     parser.add("feedback", CMD_FEEDBACK, &MotorApp::cmdFeedback);
     parser.add("testmove", CMD_TESTMOVE, &MotorApp::cmdTestMove);
     parser.add("testsync", CMD_TESTSYNC, &MotorApp::cmdTestSync);
+    parser.add("sethand", CMD_SET_HAND, &MotorApp::cmdSetHand);
     parser.add("ota", CMD_OTA, &MotorApp::cmdOta);
     parser.add("boot", CMD_BOOT, &MotorApp::cmdBoot);
     parser.add("reboot", CMD_REBOOT, &MotorApp::cmdReboot);
@@ -212,6 +216,7 @@ void MotorApp::cmdHelp() {
     OUT(CMD_FEEDBACK);
     OUT(CMD_TESTMOVE);
     OUT(CMD_TESTSYNC);
+    OUT(CMD_SET_HAND);
     OUT(CMD_OTA);
     OUT(CMD_BOOT);
     OUT(CMD_REBOOT);
@@ -544,6 +549,34 @@ void MotorApp::cmdTestSync() {
     ST3215Motor.SyncWritePosEx(ID, 2, Position, Speed, ACC);
     OUT("Entrambi i servi -> 100");
     delay(2000);
+}
+
+void MotorApp::cmdSetHand() {
+    // Verify we have exactly 5 arguments
+    if (parser.getArgc() < 6) {
+        OUT("Usage: sethand <thumb> <index> <middle> <ring> <pinky>");
+        OUT("  Range: 0=open, 100=closed");
+        OUT("  Values are clamped to [0, 100]");
+        return;
+    }
+
+    // Read and clamp values for each finger
+    int thumb = CLAMP(parser.getInt(1), 0, 100);
+    int index = CLAMP(parser.getInt(2), 0, 100);
+    int middle = CLAMP(parser.getInt(3), 0, 100);
+    int ring = CLAMP(parser.getInt(4), 0, 100);
+    int pinky = CLAMP(parser.getInt(5), 0, 100);
+
+    // Apply positions to fingers
+    _fingers[0].setRelativePosition(thumb);
+    _fingers[1].setRelativePosition(index);
+    _fingers[2].setRelativePosition(middle);
+    _fingers[3].setRelativePosition(ring);
+    _fingers[4].setRelativePosition(pinky);
+
+    // Print applied values
+    OUT("Hand position set: thumb=%d, index=%d, middle=%d, ring=%d, pinky=%d",
+        thumb, index, middle, ring, pinky);
 }
 
 void MotorApp::cmdOta() {
