@@ -9,7 +9,7 @@
  * @param maxOpen 
  * @param maxClosed
  */
-Finger::Finger(int _number, int _controlPin, int _maxOpen, int _maxClosed, int _direction) {
+Finger::Finger(int _number, int _controlPin, int _maxOpen, int _maxClosed, int _direction, int _channel) {
    number = _number; // finger number, to help in logs
    controlPin = _controlPin;
    
@@ -21,9 +21,8 @@ Finger::Finger(int _number, int _controlPin, int _maxOpen, int _maxClosed, int _
    } else {
       currentPosition = maxClosed;
    }
-   myServo.attach(controlPin, Servo::CHANNEL_NOT_ATTACHED, 0,
-               180, Servo::DEFAULT_MIN_PULSE_WIDTH_US,
-               Servo::DEFAULT_MAX_PULSE_WIDTH_US, frequency);
+   myServo.init(controlPin, _channel, 0, 180);
+   myServo.begin();
 }
 
 void Finger::move(int to) {
@@ -72,8 +71,8 @@ void Finger::run() {
       }
    }
 
-   if (update) {     
-      myServo.write(currentPosition);      
+   if (update) {
+      myServo.setPosition((int)currentPosition);
    }
 
 }

@@ -10,6 +10,7 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_FORWARD "* forward, move motor forward"
 #define CMD_REVERSE "* reverse, move motor reverse"
 #define CMD_GET_POSITION "* getposition, get motor position"
+#define CMD_SET_POSITION "* setposition <pos> [speed] [acc], move motor to absolute position"
 #define CMD_SET_SPEED "* setspeed, set motor speed"
 #define CMD_HELP "* help, list available commands"
 #define CMD_CURRENT "* current, get motor current"
@@ -31,6 +32,12 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_OTA "* ota, switch to OTA update app"
 #define CMD_BOOT "* boot, switch to bootloader for board configuration"
 #define CMD_REBOOT "* reboot, reboot the board"
+#define CMD_SET_FINGER "* setfinger <n> <0-100>, imposta posizione relativa dito n (0=aperto, 100=chiuso)"
+#define CMD_OPEN_FINGER "* openfinger <n>, apri il dito n"
+#define CMD_CLOSE_FINGER "* closefinger <n>, chiudi il dito n"
+#define CMD_LIST_FINGERS "* listfingers, elenca diti con posizioni attuali"
+#define CMD_SET_FINGER_RANGE "* setfingerrange <n> <maxOpen> <maxClosed>, imposta range raw servo per dito n"
+#define CMD_INVERT_FINGER   "* invertfinger <n> [0|1], inverte la direzione del motore (default: toggle)"
 
 void MotorApp::enter() {
     log_d("enter MotorApp");
@@ -38,6 +45,7 @@ void MotorApp::enter() {
     parser.add("forward", CMD_FORWARD, &MotorApp::cmdForward);
     parser.add("reverse", CMD_REVERSE, &MotorApp::cmdReverse);
     parser.add("getposition", CMD_GET_POSITION, &MotorApp::cmdGetPosition);
+    parser.add("setposition", CMD_SET_POSITION, &MotorApp::cmdSetPosition);
     parser.add("setspeed", CMD_SET_SPEED, &MotorApp::cmdSetSpeed);
     parser.add("help", CMD_HELP, &MotorApp::cmdHelp);
     parser.add("current", CMD_CURRENT, &MotorApp::cmdCurrent);
@@ -59,6 +67,12 @@ void MotorApp::enter() {
     parser.add("ota", CMD_OTA, &MotorApp::cmdOta);
     parser.add("boot", CMD_BOOT, &MotorApp::cmdBoot);
     parser.add("reboot", CMD_REBOOT, &MotorApp::cmdReboot);
+    parser.add("setfinger",      CMD_SET_FINGER,       &MotorApp::cmdSetFinger);
+    parser.add("openfinger",     CMD_OPEN_FINGER,      &MotorApp::cmdOpenFinger);
+    parser.add("closefinger",    CMD_CLOSE_FINGER,     &MotorApp::cmdCloseFinger);
+    parser.add("listfingers",    CMD_LIST_FINGERS,     &MotorApp::cmdListFingers);
+    parser.add("setfingerrange", CMD_SET_FINGER_RANGE, &MotorApp::cmdSetFingerRange);
+    parser.add("invertfinger",   CMD_INVERT_FINGER,    &MotorApp::cmdInvertFinger);
     // Initialize H-bridge motors (only if present on this board)
     #if NUM_MOTORS > 0
     log_d("Initializing motors");
@@ -89,7 +103,7 @@ void MotorApp::enter() {
         _motors[_motorCount++] = &PQ12Motor[i];
     #endif
     // PWM servos on G7, G6, G5 — explicit LEDC channels 1,2,3 (ch 0 = M5GFX backlight)
-    PwmServo.init(PWM_SERVO_PIN,  1);
+    PwmServo.init(PWM_SERVO1_PIN,  1);
     PwmServo.begin();
     _motors[_motorCount++] = &PwmServo;
     PwmServo2.init(PWM_SERVO2_PIN, 2);
@@ -98,6 +112,22 @@ void MotorApp::enter() {
     PwmServo3.init(PWM_SERVO3_PIN, 3);
     PwmServo3.begin();
     _motors[_motorCount++] = &PwmServo3;
+    PwmServo4.init(PWM_SERVO4_PIN, 4);
+    PwmServo4.begin();
+    _motors[_motorCount++] = &PwmServo4;
+    PwmServo5.init(PWM_SERVO5_PIN, 5);
+    PwmServo5.begin();
+    _motors[_motorCount++] = &PwmServo5;
+
+    // Init finger abstraction.
+    // Range (maxOpen, maxClosed): se maxOpen > maxClosed il motore è invertito.
+    // Dita dritte (1=pollice, 4=anulare): maxOpen < maxClosed
+    // Dita invertite (2=indice, 3=medio, 5=mignolo): maxOpen > maxClosed
+    _fingers[0].init(&PwmServo,  0,   120); // G7  — pollice  (normale)
+    _fingers[1].init(&PwmServo2, 140, 0);   // G0  — indice   (invertito)
+    _fingers[2].init(&PwmServo3, 180, 40);  // G1  — medio    (invertito)
+    _fingers[3].init(&PwmServo4, 0,   140); // G6  — anulare  (normale)
+    _fingers[4].init(&PwmServo5, 120, 30);  // G5  — mignolo  (invertito)
     selectedMotor = 0;
     OUT("Motors registered: %d", _motorCount);
     for (int i = 0; i < _motorCount; i++)
@@ -140,6 +170,18 @@ void MotorApp::cmdGetPosition() {
     OUT("[%s] position: %d", _motors[selectedMotor]->getType(), position);
 }
 
+void MotorApp::cmdSetPosition() {
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    int pos   = parser.getInt(1);
+    int spd   = parser.getArgs() > 2 ? parser.getInt(2) : -1;
+    int acc   = parser.getArgs() > 3 ? parser.getInt(3) :  0;
+    bool ok = _motors[selectedMotor]->setPosition(pos, spd, acc);
+    if (ok)
+        OUT("[%s] moving to position %d (speed=%d, acc=%d)", _motors[selectedMotor]->getType(), pos, spd, acc);
+    else
+        OUT("[%s] setPosition failed", _motors[selectedMotor]->getType());
+}
+
 void MotorApp::cmdSetSpeed() {
     speed = parser.getInt(1);
     if (_motorCount == 0) { OUT("No motor configured"); return; }
@@ -152,6 +194,7 @@ void MotorApp::cmdHelp() {
     OUT(CMD_FORWARD);
     OUT(CMD_REVERSE);
     OUT(CMD_GET_POSITION);
+    OUT(CMD_SET_POSITION);
     OUT(CMD_SET_SPEED);
     OUT(CMD_HELP);
     OUT(CMD_CURRENT);
@@ -516,4 +559,62 @@ void MotorApp::cmdBoot() {
 void MotorApp::cmdReboot() {
     OUT("Rebooting board");
     changeApp(STATE_REBOOT);
+}
+
+// ── Finger commands ───────────────────────────────────────────────────────────
+
+void MotorApp::cmdSetFinger() {
+    int n   = parser.getInt(1);
+    int pct = parser.getInt(2);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].setRelativePosition(pct);
+    OUT("Finger %d -> %d%% (raw=%d)", n, pct, _fingers[n].getRawPosition());
+}
+
+void MotorApp::cmdOpenFinger() {
+    int n = parser.getInt(1);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].open();
+    OUT("Finger %d aperto (raw=%d)", n, _fingers[n].getRawPosition());
+}
+
+void MotorApp::cmdCloseFinger() {
+    int n = parser.getInt(1);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].close();
+    OUT("Finger %d chiuso (raw=%d)", n, _fingers[n].getRawPosition());
+}
+
+void MotorApp::cmdListFingers() {
+    OUT("Dita (%d):", NUM_FINGERS);
+    for (int i = 0; i < NUM_FINGERS; i++) {
+        OUT("  [%d] pos=%d%%  raw=%d  range=[%d..%d]%s",
+            i,
+            _fingers[i].getRelativePosition(),
+            _fingers[i].getRawPosition(),
+            _fingers[i].getMaxOpen(),
+            _fingers[i].getMaxClosed(),
+            _fingers[i].isInverted() ? "  [INV]" : "");
+    }
+}
+
+void MotorApp::cmdSetFingerRange() {
+    int n        = parser.getInt(1);
+    int maxOpen  = parser.getInt(2);
+    int maxClosed = parser.getInt(3);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].setRange(maxOpen, maxClosed);
+    OUT("Finger %d range: aperto=%d chiuso=%d", n, maxOpen, maxClosed);
+}
+
+void MotorApp::cmdInvertFinger() {
+    int n = parser.getInt(1);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    // Inverte scambiando maxOpen e maxClosed
+    _fingers[n].setRange(_fingers[n].getMaxClosed(), _fingers[n].getMaxOpen());
+    OUT("Finger %d: direzione %s (range [%d..%d])",
+        n,
+        _fingers[n].isInverted() ? "invertita" : "normale",
+        _fingers[n].getMaxOpen(),
+        _fingers[n].getMaxClosed());
 }
