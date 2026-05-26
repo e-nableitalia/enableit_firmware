@@ -6,8 +6,10 @@
 #include <CommandParser.h>
 #include <Motor.h>
 #include <SMotor.h>
+#include <Finger.h>
 
 #define MOTOR_APP "motor"
+#define NUM_FINGERS 5
 
 //#define USE_TWO_MOTORS 1
 #ifdef USE_LEGACY_MOTOR_BOARD
@@ -70,6 +72,7 @@ private:
     void cmdOta();            // <--- switch to OTA update app
     void cmdBoot();           // <--- switch to bootloader
     void cmdReboot();         // <--- reboot the board
+    void cmdSetHand();        // <--- set hand position for 5 fingers
 
     ConsoleCommandParser<MotorApp> parser;
     int speed = 100;
@@ -83,6 +86,7 @@ private:
     Motor PQ12Motor[1]; // placeholder: no H-bridge on this board
 #endif
     SMotor ST3215Motor;
+    Finger _fingers[NUM_FINGERS];
 };
 
 #endif
