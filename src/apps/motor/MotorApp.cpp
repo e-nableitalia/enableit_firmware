@@ -12,6 +12,7 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_FORWARD "* forward, move motor forward"
 #define CMD_REVERSE "* reverse, move motor reverse"
 #define CMD_GET_POSITION "* getposition, get motor position"
+#define CMD_SET_POSITION "* setposition <pos> [speed] [acc], move motor to absolute position"
 #define CMD_SET_SPEED "* setspeed, set motor speed"
 #define CMD_HELP "* help, list available commands"
 #define CMD_CURRENT "* current, get motor current"
@@ -19,6 +20,7 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_SET_PIN "* setpin <pin> <state>, set pin state (high/low)"
 #define CMD_SLEEP "* sleep, put the motor in sleep mode"
 #define CMD_SELECT_MOTOR "* selectmotor <n>, select active motor (0/1)"
+#define CMD_LIST_MOTORS  "* listmotors, list all available motors"
 #define CMD_GET_SERVO_INFO "* getservoinfo, leggi info dal servo ST3215"
 #define CMD_PING_SERVOS "* pingservos, ping broadcast su tutti i servo"
 #define CMD_SCAN "* scan, cerca il servo su vari baudrate"
@@ -32,6 +34,12 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_OTA "* ota, switch to OTA update app"
 #define CMD_BOOT "* boot, switch to bootloader for board configuration"
 #define CMD_REBOOT "* reboot, reboot the board"
+#define CMD_SET_FINGER "* setfinger <n> <0-100>, imposta posizione relativa dito n (0=aperto, 100=chiuso)"
+#define CMD_OPEN_FINGER "* openfinger <n>, apri il dito n"
+#define CMD_CLOSE_FINGER "* closefinger <n>, chiudi il dito n"
+#define CMD_LIST_FINGERS "* listfingers, elenca diti con posizioni attuali"
+#define CMD_SET_FINGER_RANGE "* setfingerrange <n> <maxOpen> <maxClosed>, imposta range raw servo per dito n"
+#define CMD_INVERT_FINGER   "* invertfinger <n> [0|1], inverte la direzione del motore (default: toggle)"
 #define CMD_SET_HAND "* sethand <thumb> <index> <middle> <ring> <pinky>, imposta posizione relativa delle 5 dita (0=aperto, 100=chiuso)"
 
 void MotorApp::enter() {
@@ -40,6 +48,7 @@ void MotorApp::enter() {
     parser.add("forward", CMD_FORWARD, &MotorApp::cmdForward);
     parser.add("reverse", CMD_REVERSE, &MotorApp::cmdReverse);
     parser.add("getposition", CMD_GET_POSITION, &MotorApp::cmdGetPosition);
+    parser.add("setposition", CMD_SET_POSITION, &MotorApp::cmdSetPosition);
     parser.add("setspeed", CMD_SET_SPEED, &MotorApp::cmdSetSpeed);
     parser.add("help", CMD_HELP, &MotorApp::cmdHelp);
     parser.add("current", CMD_CURRENT, &MotorApp::cmdCurrent);
@@ -47,6 +56,7 @@ void MotorApp::enter() {
     parser.add("setpin", CMD_SET_PIN, &MotorApp::cmdSetPin);
     parser.add("sleep", CMD_SLEEP, &MotorApp::cmdSleep);
     parser.add("selectmotor", CMD_SELECT_MOTOR, &MotorApp::cmdSelectMotor);
+    parser.add("listmotors",  CMD_LIST_MOTORS,  &MotorApp::cmdListMotors);
     parser.add("getservoinfo", CMD_GET_SERVO_INFO, &MotorApp::cmdGetServoInfo); 
     parser.add("pingservos", CMD_PING_SERVOS, &MotorApp::cmdPingServos);
     parser.add("scan", CMD_SCAN, &MotorApp::cmdScan);
@@ -61,6 +71,12 @@ void MotorApp::enter() {
     parser.add("ota", CMD_OTA, &MotorApp::cmdOta);
     parser.add("boot", CMD_BOOT, &MotorApp::cmdBoot);
     parser.add("reboot", CMD_REBOOT, &MotorApp::cmdReboot);
+    parser.add("setfinger",      CMD_SET_FINGER,       &MotorApp::cmdSetFinger);
+    parser.add("openfinger",     CMD_OPEN_FINGER,      &MotorApp::cmdOpenFinger);
+    parser.add("closefinger",    CMD_CLOSE_FINGER,     &MotorApp::cmdCloseFinger);
+    parser.add("listfingers",    CMD_LIST_FINGERS,     &MotorApp::cmdListFingers);
+    parser.add("setfingerrange", CMD_SET_FINGER_RANGE, &MotorApp::cmdSetFingerRange);
+    parser.add("invertfinger",   CMD_INVERT_FINGER,    &MotorApp::cmdInvertFinger);
     // Initialize H-bridge motors (only if present on this board)
     #if NUM_MOTORS > 0
     log_d("Initializing motors");
@@ -73,14 +89,56 @@ void MotorApp::enter() {
     #endif
     // Initialize serial servo bus (present whenever USE_TWO_MOTORS is not set)
     #ifndef USE_TWO_MOTORS
-    log_d("Initializing SMotor on TX=%d RX=%d", (int)BUS_SERIAL_TX, (int)BUS_SERIAL_RX);
-    SMotor::static_init(BUS_SERIAL_RX, BUS_SERIAL_TX);
-    log_d("SMotor initialized");
+    log_d("Initializing STMotor on TX=%d RX=%d", (int)BUS_SERIAL_TX, (int)BUS_SERIAL_RX);
+    STMotor::static_init(BUS_SERIAL_RX, BUS_SERIAL_TX);
+    log_d("STMotor initialized");
     ST3215Motor.init(SERVO_ID);
 
     #endif // !USE_TWO_MOTORS
 
+    // ── Build generic motor registry ──────────────────────────────────────────
+    // Order: servo first (slot 0), then H-bridge motors
+    _motorCount = 0;
+    #ifndef USE_TWO_MOTORS
+    _motors[_motorCount++] = &ST3215Motor;
+    #endif
+    #if NUM_MOTORS > 0
+    for (int i = 0; i < NUM_MOTORS; i++)
+        _motors[_motorCount++] = &PQ12Motor[i];
+    #endif
+    // PWM servos on G7, G6, G5 — explicit LEDC channels 1,2,3 (ch 0 = M5GFX backlight)
+    PwmServo.init(PWM_SERVO1_PIN,  1);
+    PwmServo.begin();
+    _motors[_motorCount++] = &PwmServo;
+    PwmServo2.init(PWM_SERVO2_PIN, 2);
+    PwmServo2.begin();
+    _motors[_motorCount++] = &PwmServo2;
+    PwmServo3.init(PWM_SERVO3_PIN, 3);
+    PwmServo3.begin();
+    _motors[_motorCount++] = &PwmServo3;
+    PwmServo4.init(PWM_SERVO4_PIN, 4);
+    PwmServo4.begin();
+    _motors[_motorCount++] = &PwmServo4;
+    PwmServo5.init(PWM_SERVO5_PIN, 5);
+    PwmServo5.begin();
+    _motors[_motorCount++] = &PwmServo5;
+
+    // Init finger abstraction.
+    // Range (maxOpen, maxClosed): se maxOpen > maxClosed il motore è invertito.
+    // Dita dritte (1=pollice, 4=anulare): maxOpen < maxClosed
+    // Dita invertite (2=indice, 3=medio, 5=mignolo): maxOpen > maxClosed
+    _fingers[0].init(&PwmServo,  0,   120); // G7  — pollice  (normale)
+    _fingers[1].init(&PwmServo2, 140, 0);   // G0  — indice   (invertito)
+    _fingers[2].init(&PwmServo3, 180, 40);  // G1  — medio    (invertito)
+    _fingers[3].init(&PwmServo4, 0,   140); // G6  — anulare  (normale)
+    _fingers[4].init(&PwmServo5, 120, 30);  // G5  — mignolo  (invertito)
+    selectedMotor = 0;
+    OUT("Motors registered: %d", _motorCount);
+    for (int i = 0; i < _motorCount; i++)
+        log_d("  [%d] %s", i, _motors[i]->getType());
+
     // Display init
+    enableit::board.getDisplay().clear();
     enableit::board.getDisplay().setTextSize(2);
     enableit::board.getDisplay().setTitle("MotorTestApp");
     enableit::board.getDisplay().setTextSize(1);
@@ -94,28 +152,45 @@ void MotorApp::leave() {
 
 void MotorApp::process() {
     parser.poll();
-    #if NUM_MOTORS > 0
-    PQ12Motor[selectedMotor].poll();
-    #endif
+    for (int i = 0; i < _motorCount; i++)
+        _motors[i]->poll();
 }
 
 void MotorApp::cmdForward() {
-    PQ12Motor[selectedMotor].forward(speed);
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    _motors[selectedMotor]->forward(speed);
+    OUT("[%s] forward speed=%d", _motors[selectedMotor]->getType(), speed);
 }
 
 void MotorApp::cmdReverse() {
-    PQ12Motor[selectedMotor].reverse(speed);
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    _motors[selectedMotor]->reverse(speed);
+    OUT("[%s] reverse speed=%d", _motors[selectedMotor]->getType(), speed);
 }
 
 void MotorApp::cmdGetPosition() {
-    int position = PQ12Motor[selectedMotor].getPosition();
-    OUT("Motor position: %d", position);
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    int position = _motors[selectedMotor]->getPosition();
+    OUT("[%s] position: %d", _motors[selectedMotor]->getType(), position);
+}
+
+void MotorApp::cmdSetPosition() {
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    int pos   = parser.getInt(1);
+    int spd   = parser.getArgs() > 2 ? parser.getInt(2) : -1;
+    int acc   = parser.getArgs() > 3 ? parser.getInt(3) :  0;
+    bool ok = _motors[selectedMotor]->setPosition(pos, spd, acc);
+    if (ok)
+        OUT("[%s] moving to position %d (speed=%d, acc=%d)", _motors[selectedMotor]->getType(), pos, spd, acc);
+    else
+        OUT("[%s] setPosition failed", _motors[selectedMotor]->getType());
 }
 
 void MotorApp::cmdSetSpeed() {
     speed = parser.getInt(1);
-    OUT("Motor speed set to: %d", speed);
-    PQ12Motor[selectedMotor].speed(speed);
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    _motors[selectedMotor]->setSpeed(speed);
+    OUT("[%s] speed set to: %d", _motors[selectedMotor]->getType(), speed);
 }
 
 void MotorApp::cmdHelp() {
@@ -123,6 +198,7 @@ void MotorApp::cmdHelp() {
     OUT(CMD_FORWARD);
     OUT(CMD_REVERSE);
     OUT(CMD_GET_POSITION);
+    OUT(CMD_SET_POSITION);
     OUT(CMD_SET_SPEED);
     OUT(CMD_HELP);
     OUT(CMD_CURRENT);
@@ -148,13 +224,15 @@ void MotorApp::cmdHelp() {
 }
 
 void MotorApp::cmdCurrent() {
-    int current = PQ12Motor[selectedMotor].getCurrent();
-    OUT("Motor current: %d mA", current);
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    int current = _motors[selectedMotor]->getCurrent();
+    OUT("[%s] current: %d mA", _motors[selectedMotor]->getType(), current);
 }
 
 void MotorApp::cmdStop() {
-    PQ12Motor[selectedMotor].stop("user stop");
-    OUT("Motor stopped");
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    _motors[selectedMotor]->stop();
+    OUT("[%s] stopped", _motors[selectedMotor]->getType());
 }
 
 void MotorApp::cmdSetPin() {
@@ -187,18 +265,29 @@ void MotorApp::cmdSetPin() {
 }
 
 void MotorApp::cmdSleep() {
-    PQ12Motor[selectedMotor].sleep();
-    OUT("Motor put to sleep");
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    _motors[selectedMotor]->disable();
+    OUT("[%s] disabled", _motors[selectedMotor]->getType());
+}
+
+void MotorApp::cmdListMotors() {
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    OUT("Available motors (%d):", _motorCount);
+    for (int i = 0; i < _motorCount; i++)
+        OUT("  [%d] %s%s", i, _motors[i]->getType(), i == selectedMotor ? " *" : "");
 }
 
 void MotorApp::cmdSelectMotor() {
     int n = parser.getInt(1);
-    if (n < 0 || n >= NUM_MOTORS) {
-        OUT("Invalid motor index: %d", n);
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    if (n < 0 || n >= _motorCount) {
+        OUT("Invalid motor index %d (valid: 0..%d)", n, _motorCount - 1);
+        for (int i = 0; i < _motorCount; i++)
+            OUT("  [%d] %s", i, _motors[i]->getType());
         return;
     }
     selectedMotor = n;
-    OUT("Selected motor: %d", selectedMotor);
+    OUT("Selected motor %d: %s", selectedMotor, _motors[selectedMotor]->getType());
 }
 
 void MotorApp::cmdGetServoInfo() {
@@ -387,77 +476,35 @@ void MotorApp::cmdUseRate() {
 }
 
 void MotorApp::cmdFeedback() {
-    int Pos, Speed, Load, Voltage, Temper, Move, Current;
-    int res = ST3215Motor.FeedBack(servoId);
-    if (res != -1) {
-        Pos = ST3215Motor.ReadPos(-1);
-        Speed = ST3215Motor.ReadSpeed(-1);
-        Load = ST3215Motor.ReadLoad(-1);
-        Voltage = ST3215Motor.ReadVoltage(-1);
-        Temper = ST3215Motor.ReadTemper(-1);
-        Move = ST3215Motor.ReadMove(-1);
-        Current = ST3215Motor.ReadCurrent(-1);
-        OUT("Position: %d", Pos);
-        OUT("Speed: %d", Speed);
-        OUT("Load: %d", Load);
-        OUT("Voltage: %d", Voltage);
-        OUT("Temper: %d", Temper);
-        OUT("Move: %d", Move);
-        OUT("Current: %d", Current);
-    } else {
-        OUT("FeedBack err");
-    }
+    if (_motorCount == 0) { OUT("No motor configured"); return; }
+    enableit::Motor* m = _motors[selectedMotor];
+    enableit::MotorTelemetry t = m->getTelemetry();
 
-    // Letture singole con id esplicito
-    Pos = ST3215Motor.ReadPos(servoId);
-    if (Pos != -1) {
-        OUT("Servo position: %d", Pos);
-    } else {
-        OUT("read position err");
+    // State label
+    const char* stateStr = "?";
+    switch (m->getState()) {
+        case enableit::MotorState::UNKNOWN:    stateStr = "UNKNOWN";    break;
+        case enableit::MotorState::IDLE:       stateStr = "IDLE";       break;
+        case enableit::MotorState::RUNNING:    stateStr = "RUNNING";    break;
+        case enableit::MotorState::MOVING:     stateStr = "MOVING";     break;
+        case enableit::MotorState::HOLDING:    stateStr = "HOLDING";    break;
+        case enableit::MotorState::BRAKING:    stateStr = "BRAKING";    break;
+        case enableit::MotorState::CALIBRATING:stateStr = "CALIBRATING";break;
+        case enableit::MotorState::HOMING:     stateStr = "HOMING";     break;
+        case enableit::MotorState::SLEEPING:   stateStr = "SLEEPING";   break;
+        case enableit::MotorState::FAULT:      stateStr = "FAULT";      break;
+        case enableit::MotorState::MOTOR_OFF:  stateStr = "MOTOR_OFF";  break;
     }
-
-    Voltage = ST3215Motor.ReadVoltage(servoId);
-    if (Voltage != -1) {
-        OUT("Servo Voltage: %d", Voltage);
-    } else {
-        OUT("read Voltage err");
-    }
-
-    Temper = ST3215Motor.ReadTemper(servoId);
-    if (Temper != -1) {
-        OUT("Servo temperature: %d", Temper);
-    } else {
-        OUT("read temperature err");
-    }
-
-    Speed = ST3215Motor.ReadSpeed(servoId);
-    if (Speed != -1) {
-        OUT("Servo Speed: %d", Speed);
-    } else {
-        OUT("read Speed err");
-    }
-
-    Load = ST3215Motor.ReadLoad(servoId);
-    if (Load != -1) {
-        OUT("Servo Load: %d", Load);
-    } else {
-        OUT("read Load err");
-    }
-
-    Current = ST3215Motor.ReadCurrent(servoId);
-    if (Current != -1) {
-        OUT("Servo Current: %d", Current);
-    } else {
-        OUT("read Current err");
-    }
-
-    Move = ST3215Motor.ReadMove(servoId);
-    if (Move != -1) {
-        OUT("Servo Move: %d", Move);
-    } else {
-        OUT("read Move err");
-    }
-    OUT("");
+    OUT("--- Motor %d [%s] ---", selectedMotor, m->getType());
+    OUT("State    : %s", stateStr);
+    OUT("Position : %d  (target: %d)", t.position, t.targetPosition);
+    OUT("Speed    : %d  Velocity: %d", t.speed, t.velocity);
+    OUT("Current  : %d mA", t.current_mA);
+    if (t.voltage_mV    >= 0) OUT("Voltage  : %.2f V",  t.voltage_mV    / 1000.0f);
+    if (t.temperature_c >= 0) OUT("Temp     : %d deg C", t.temperature_c);
+    OUT("Moving: %s  Homed: %s  Enabled: %s  Fault: %s",
+        t.moving?"Y":"N", t.homed?"Y":"N", t.enabled?"Y":"N", t.fault?"Y":"N");
+    if (t.fault) OUT("FaultCode: %u", t.faultCode);
 }
 
 void MotorApp::cmdTestMove() {
@@ -545,4 +592,62 @@ void MotorApp::cmdBoot() {
 void MotorApp::cmdReboot() {
     OUT("Rebooting board");
     changeApp(STATE_REBOOT);
+}
+
+// ── Finger commands ───────────────────────────────────────────────────────────
+
+void MotorApp::cmdSetFinger() {
+    int n   = parser.getInt(1);
+    int pct = parser.getInt(2);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].setRelativePosition(pct);
+    OUT("Finger %d -> %d%% (raw=%d)", n, pct, _fingers[n].getRawPosition());
+}
+
+void MotorApp::cmdOpenFinger() {
+    int n = parser.getInt(1);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].open();
+    OUT("Finger %d aperto (raw=%d)", n, _fingers[n].getRawPosition());
+}
+
+void MotorApp::cmdCloseFinger() {
+    int n = parser.getInt(1);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].close();
+    OUT("Finger %d chiuso (raw=%d)", n, _fingers[n].getRawPosition());
+}
+
+void MotorApp::cmdListFingers() {
+    OUT("Dita (%d):", NUM_FINGERS);
+    for (int i = 0; i < NUM_FINGERS; i++) {
+        OUT("  [%d] pos=%d%%  raw=%d  range=[%d..%d]%s",
+            i,
+            _fingers[i].getRelativePosition(),
+            _fingers[i].getRawPosition(),
+            _fingers[i].getMaxOpen(),
+            _fingers[i].getMaxClosed(),
+            _fingers[i].isInverted() ? "  [INV]" : "");
+    }
+}
+
+void MotorApp::cmdSetFingerRange() {
+    int n        = parser.getInt(1);
+    int maxOpen  = parser.getInt(2);
+    int maxClosed = parser.getInt(3);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    _fingers[n].setRange(maxOpen, maxClosed);
+    OUT("Finger %d range: aperto=%d chiuso=%d", n, maxOpen, maxClosed);
+}
+
+void MotorApp::cmdInvertFinger() {
+    int n = parser.getInt(1);
+    if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+    // Inverte scambiando maxOpen e maxClosed
+    _fingers[n].setRange(_fingers[n].getMaxClosed(), _fingers[n].getMaxOpen());
+    OUT("Finger %d: direzione %s (range [%d..%d])",
+        n,
+        _fingers[n].isInverted() ? "invertita" : "normale",
+        _fingers[n].getMaxOpen(),
+        _fingers[n].getMaxClosed());
 }

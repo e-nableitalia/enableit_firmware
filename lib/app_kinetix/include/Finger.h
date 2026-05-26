@@ -2,12 +2,12 @@
 #pragma once
 
 #include <enableit.h>
-#include <Servo.h>
+#include <PwmServoMotor.h>
 #include "FingerMovement.h"
 
 class Finger {
 public:   
-   Finger(int number, int controlPin, int maxOpen, int maxClosed, int direction);
+   Finger(int number, int controlPin, int maxOpen, int maxClosed, int direction, int channel = -1);
 
    void move(int to);
    void moveRelative(int to);
@@ -23,7 +23,7 @@ public:
    void setMovement(FingerMovement *fingerMovement);
    void resetMovement();
    
-   Servo myServo;
+   enableit::PwmServoMotor myServo;
 
    int number = 0;
    int controlPin = 0;
@@ -33,7 +33,6 @@ public:
    uint32_t delay = 0;
    float currentPosition = maxOpen;
    int target = maxOpen;
-   int frequency = 100;
    float step = DEFAULT_STEP;
    int direction = 1;
 };

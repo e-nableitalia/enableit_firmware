@@ -4,9 +4,12 @@
 #include <BoardApp.h>
 #include <BoardManager.h>
 #include <CommandParser.h>
-#include <Motor.h>
-#include <SMotor.h>
+#include <PQ12Actuator.h>
+#include <STMotor.h>
+#include <PwmServoMotor.h>
 #include <Finger.h>
+
+#define NUM_FINGERS 5
 
 #define MOTOR_APP "motor"
 #define NUM_FINGERS 5
@@ -37,6 +40,11 @@
 #define BUS_SERIAL_TX    GPIO_NUM_38
 #define BUS_SERIAL_RX    GPIO_NUM_39
 #define SERVO_ID         1
+#define PWM_SERVO1_PIN   GPIO_NUM_7   // G7 — pollice
+#define PWM_SERVO2_PIN   GPIO_NUM_0   // G0 — indice
+#define PWM_SERVO3_PIN   GPIO_NUM_1   // G1 — medio
+#define PWM_SERVO4_PIN   GPIO_NUM_6   // G6 — anulare
+#define PWM_SERVO5_PIN   GPIO_NUM_5   // G5 — mignolo
 #endif
 
 class MotorApp : public enableit::BoardApp {
@@ -48,10 +56,10 @@ public:
     const char *name() { return MOTOR_APP; }
 
 private:
-    int selectedMotor = 0;
     void cmdForward();
     void cmdReverse();
     void cmdGetPosition();
+    void cmdSetPosition();
     void cmdSetSpeed();
     void cmdHelp();
     void cmdCurrent();
@@ -59,6 +67,7 @@ private:
     void cmdSetPin(); // New command for setting pin state
     void cmdSleep();
     void cmdSelectMotor();
+    void cmdListMotors();
     void cmdGetServoInfo();
     void cmdPingServos(); // <--- nuovo comando
     void cmdScan();
@@ -72,20 +81,41 @@ private:
     void cmdOta();            // <--- switch to OTA update app
     void cmdBoot();           // <--- switch to bootloader
     void cmdReboot();         // <--- reboot the board
+    void cmdSetFinger();      // <--- imposta posizione relativa dito (0-100)
+    void cmdOpenFinger();     // <--- apri dito
+    void cmdCloseFinger();    // <--- chiudi dito
+    void cmdListFingers();    // <--- elenca diti e posizioni
+    void cmdSetFingerRange(); // <--- imposta range raw del servo per un dito
+    void cmdInvertFinger();   // <--- scambia maxOpen/maxClosed (toggle direzione)
     void cmdSetHand();        // <--- set hand position for 5 fingers
 
     ConsoleCommandParser<MotorApp> parser;
     int speed = 100;
     bool direction = false;
     int counter = 0;
-    int servoId = SERVO_ID;           // <--- variabile dinamica per id
-    long servoBaudrate = 1000000;     // <--- variabile dinamica per baudrate (default 1Mbps)
+    int selectedMotor = 0;
+    int servoId = SERVO_ID;
+    long servoBaudrate = 1000000;
+
+    // ── Generic motor registry ────────────────────────────────────────────────
+    // All configured motors are registered here at enter() time.
+    // Generic commands (forward/reverse/stop/…) dispatch via this array.
+    enableit::Motor* _motors[6] = {};
+    int _motorCount = 0;
+
 #if NUM_MOTORS > 0
-    Motor PQ12Motor[NUM_MOTORS];
+    enableit::PQ12Actuator PQ12Motor[NUM_MOTORS];
 #else
-    Motor PQ12Motor[1]; // placeholder: no H-bridge on this board
+    enableit::PQ12Actuator PQ12Motor[1]; // placeholder: no H-bridge on this board
 #endif
-    SMotor ST3215Motor;
+    enableit::STMotor       ST3215Motor;
+    enableit::PwmServoMotor  PwmServo;   // G7
+    enableit::PwmServoMotor  PwmServo2;  // G6
+    enableit::PwmServoMotor  PwmServo3;  // G5
+    enableit::PwmServoMotor  PwmServo4;  // G1
+    enableit::PwmServoMotor  PwmServo5;  // G2
+
+    // Finger abstraction: one Finger per PWM servo (slots 0-4 = G7,G6,G5,G1,G2)
     Finger _fingers[NUM_FINGERS];
 };
 
