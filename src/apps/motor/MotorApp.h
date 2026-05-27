@@ -7,7 +7,7 @@
 #include <PQ12Actuator.h>
 #include <STMotor.h>
 #include <PwmServoMotor.h>
-#include <Finger.h>
+#include "Finger.h"
 
 #define NUM_FINGERS 5
 
@@ -116,7 +116,7 @@ private:
     enableit::PwmServoMotor  PwmServo5;  // G2
 
     // Finger abstraction: one Finger per PWM servo (slots 0-4 = G7,G6,G5,G1,G2)
-    Finger _fingers[NUM_FINGERS];
+    motor::Finger _fingers[NUM_FINGERS];
 };
 
 #endif

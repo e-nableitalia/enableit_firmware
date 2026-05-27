@@ -553,7 +553,7 @@ void MotorApp::cmdTestSync() {
 
 void MotorApp::cmdSetHand() {
     // Verify we have exactly 5 arguments
-    if (parser.getArgc() < 6) {
+    if (parser.getArgs() < 6) {
         OUT("Usage: sethand <thumb> <index> <middle> <ring> <pinky>");
         OUT("  Range: 0=open, 100=closed");
         OUT("  Values are clamped to [0, 100]");

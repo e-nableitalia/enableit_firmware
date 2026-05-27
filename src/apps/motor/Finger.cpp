@@ -1,4 +1,7 @@
+
 #include "Finger.h"
+
+namespace motor {
 
 void Finger::init(enableit::PwmServoMotor* servo, int maxOpen, int maxClosed) {
     _servo     = servo;
@@ -49,3 +52,5 @@ int Finger::getRawPosition() const {
     if (!_servo) return -1;
     return _servo->getPosition();
 }
+
+} // namespace motor

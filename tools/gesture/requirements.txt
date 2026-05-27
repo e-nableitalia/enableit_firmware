@@ -1,3 +1,4 @@
 mediapipe>=0.10.0
 opencv-python>=4.8.0,<4.10.0
 numpy>=1.23.0,<2.0.0
+bleak>=0.21.0

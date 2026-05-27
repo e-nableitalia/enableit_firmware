@@ -2,6 +2,9 @@
 
 #include <PwmServoMotor.h>
 
+
+namespace motor {
+
 /**
  * Finger — astrazione di un dito azionato da un servo PWM.
  *
@@ -39,3 +42,5 @@ private:
 
     int _toRaw(int pct) const;
 };
+
+} // namespace motor
