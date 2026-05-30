@@ -41,8 +41,8 @@
 #define BUS_SERIAL_RX    GPIO_NUM_39
 #define SERVO_ID         1
 #define PWM_SERVO1_PIN   GPIO_NUM_7   // G7 — pollice
-#define PWM_SERVO2_PIN   GPIO_NUM_0   // G0 — indice
-#define PWM_SERVO3_PIN   GPIO_NUM_1   // G1 — medio
+#define PWM_SERVO2_PIN   GPIO_NUM_1   // G1 — indice
+#define PWM_SERVO3_PIN   GPIO_NUM_2   // G2 — medio
 #define PWM_SERVO4_PIN   GPIO_NUM_6   // G6 — anulare
 #define PWM_SERVO5_PIN   GPIO_NUM_5   // G5 — mignolo
 #endif
@@ -88,6 +88,8 @@ private:
     void cmdSetFingerRange(); // <--- imposta range raw del servo per un dito
     void cmdInvertFinger();   // <--- scambia maxOpen/maxClosed (toggle direzione)
     void cmdSetHand();        // <--- set hand position for 5 fingers
+    void cmdSetFingerSpeed(); // <--- imposta velocità max dito (%/s)
+    void cmdSetFingerAccel(); // <--- imposta accelerazione max dito (%/s^2)
 
     ConsoleCommandParser<MotorApp> parser;
     int speed = 100;

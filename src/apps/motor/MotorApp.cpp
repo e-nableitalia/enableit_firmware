@@ -41,22 +41,24 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_SET_FINGER_RANGE "* setfingerrange <n> <maxOpen> <maxClosed>, imposta range raw servo per dito n"
 #define CMD_INVERT_FINGER   "* invertfinger <n> [0|1], inverte la direzione del motore (default: toggle)"
 #define CMD_SET_HAND "* sethand <thumb> <index> <middle> <ring> <pinky>, imposta posizione relativa delle 5 dita (0=aperto, 100=chiuso)"
+#define CMD_SET_FINGER_SPEED "* setfingerspeed <n> <speed>, imposta velocità massima dito n in %/s (0-4, o -1 per tutti)"
+#define CMD_SET_FINGER_ACCEL "* setfingeraccel <n> <accel>, imposta accelerazione massima dito n in %/s^2 (0-4, o -1 per tutti)"
 
 void MotorApp::enter() {
     log_d("enter MotorApp");
     parser.init(this);
-    parser.add("forward", CMD_FORWARD, &MotorApp::cmdForward);
-    parser.add("reverse", CMD_REVERSE, &MotorApp::cmdReverse);
+    // parser.add("forward", CMD_FORWARD, &MotorApp::cmdForward);
+    // parser.add("reverse", CMD_REVERSE, &MotorApp::cmdReverse);
     parser.add("getposition", CMD_GET_POSITION, &MotorApp::cmdGetPosition);
     parser.add("setposition", CMD_SET_POSITION, &MotorApp::cmdSetPosition);
-    parser.add("setspeed", CMD_SET_SPEED, &MotorApp::cmdSetSpeed);
+    // parser.add("setspeed", CMD_SET_SPEED, &MotorApp::cmdSetSpeed);
     parser.add("help", CMD_HELP, &MotorApp::cmdHelp);
-    parser.add("current", CMD_CURRENT, &MotorApp::cmdCurrent);
-    parser.add("stop", CMD_STOP, &MotorApp::cmdStop);
+    // parser.add("current", CMD_CURRENT, &MotorApp::cmdCurrent);
+    // parser.add("stop", CMD_STOP, &MotorApp::cmdStop);
     parser.add("setpin", CMD_SET_PIN, &MotorApp::cmdSetPin);
-    parser.add("sleep", CMD_SLEEP, &MotorApp::cmdSleep);
-    parser.add("selectmotor", CMD_SELECT_MOTOR, &MotorApp::cmdSelectMotor);
-    parser.add("listmotors",  CMD_LIST_MOTORS,  &MotorApp::cmdListMotors);
+    // parser.add("sleep", CMD_SLEEP, &MotorApp::cmdSleep);
+    // parser.add("selectmotor", CMD_SELECT_MOTOR, &MotorApp::cmdSelectMotor);
+    // parser.add("listmotors",  CMD_LIST_MOTORS,  &MotorApp::cmdListMotors);
     parser.add("getservoinfo", CMD_GET_SERVO_INFO, &MotorApp::cmdGetServoInfo); 
     parser.add("pingservos", CMD_PING_SERVOS, &MotorApp::cmdPingServos);
     parser.add("scan", CMD_SCAN, &MotorApp::cmdScan);
@@ -77,6 +79,8 @@ void MotorApp::enter() {
     parser.add("listfingers",    CMD_LIST_FINGERS,     &MotorApp::cmdListFingers);
     parser.add("setfingerrange", CMD_SET_FINGER_RANGE, &MotorApp::cmdSetFingerRange);
     parser.add("invertfinger",   CMD_INVERT_FINGER,    &MotorApp::cmdInvertFinger);
+    parser.add("setfingerspeed", CMD_SET_FINGER_SPEED, &MotorApp::cmdSetFingerSpeed);
+    parser.add("setfingeraccel", CMD_SET_FINGER_ACCEL, &MotorApp::cmdSetFingerAccel);
     // Initialize H-bridge motors (only if present on this board)
     #if NUM_MOTORS > 0
     log_d("Initializing motors");
@@ -128,8 +132,8 @@ void MotorApp::enter() {
     // Dita dritte (1=pollice, 4=anulare): maxOpen < maxClosed
     // Dita invertite (2=indice, 3=medio, 5=mignolo): maxOpen > maxClosed
     _fingers[0].init(&PwmServo,  0,   120); // G7  — pollice  (normale)
-    _fingers[1].init(&PwmServo2, 140, 0);   // G0  — indice   (invertito)
-    _fingers[2].init(&PwmServo3, 180, 40);  // G1  — medio    (invertito)
+    _fingers[1].init(&PwmServo2, 0, 180);   // G0  — indice   (invertito)
+    _fingers[2].init(&PwmServo3, 140, 0);  // G1  — medio    (invertito)
     _fingers[3].init(&PwmServo4, 0,   140); // G6  — anulare  (normale)
     _fingers[4].init(&PwmServo5, 120, 30);  // G5  — mignolo  (invertito)
     selectedMotor = 0;
@@ -152,6 +156,9 @@ void MotorApp::leave() {
 
 void MotorApp::process() {
     parser.poll();
+    for (int i = 0; i < NUM_FINGERS; i++) {
+        _fingers[i].poll();
+    }
     for (int i = 0; i < _motorCount; i++)
         _motors[i]->poll();
 }
@@ -218,6 +225,8 @@ void MotorApp::cmdHelp() {
     OUT(CMD_TESTSYNC);
     OUT(CMD_SET_HAND);
     OUT(CMD_SET_FINGER);
+    OUT(CMD_SET_FINGER_SPEED);
+    OUT(CMD_SET_FINGER_ACCEL);
     OUT(CMD_OPEN_FINGER);
     OUT(CMD_CLOSE_FINGER);
     OUT(CMD_LIST_FINGERS);
@@ -627,13 +636,65 @@ void MotorApp::cmdCloseFinger() {
 void MotorApp::cmdListFingers() {
     OUT("Dita (%d):", NUM_FINGERS);
     for (int i = 0; i < NUM_FINGERS; i++) {
-        OUT("  [%d] pos=%d%%  raw=%d  range=[%d..%d]%s",
+        OUT("  [%d] pos=%d%%  raw=%d  speed=%d%%/s  accel=%d%%/s^2  range=[%d..%d]%s",
             i,
             _fingers[i].getRelativePosition(),
             _fingers[i].getRawPosition(),
+            (int)round(_fingers[i].getSpeed()),
+            (int)round(_fingers[i].getAcceleration()),
             _fingers[i].getMaxOpen(),
             _fingers[i].getMaxClosed(),
             _fingers[i].isInverted() ? "  [INV]" : "");
+    }
+}
+
+void MotorApp::cmdSetFingerSpeed() {
+    if (parser.getArgs() < 3) {
+        OUT("Usage: setfingerspeed <n> <max_speed>");
+        OUT("  n: 0-4, or -1 for all fingers");
+        OUT("  max_speed: in %%/s");
+        return;
+    }
+    int n = parser.getInt(1);
+    float speed = (float)atof(parser.getString(2));
+    if (speed <= 0) {
+        OUT("Speed must be positive!");
+        return;
+    }
+    if (n == -1) {
+        for (int i = 0; i < NUM_FINGERS; i++) {
+            _fingers[i].setSpeed(speed);
+        }
+        OUT("Speed for all fingers set to %d%%/s", (int)round(speed));
+    } else {
+        if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+        _fingers[n].setSpeed(speed);
+        OUT("Finger %d speed set to %d%%/s", n, (int)round(speed));
+    }
+}
+
+void MotorApp::cmdSetFingerAccel() {
+    if (parser.getArgs() < 3) {
+        OUT("Usage: setfingeraccel <n> <max_accel>");
+        OUT("  n: 0-4, or -1 for all fingers");
+        OUT("  max_accel: in %%/s^2");
+        return;
+    }
+    int n = parser.getInt(1);
+    float accel = (float)atof(parser.getString(2));
+    if (accel <= 0) {
+        OUT("Acceleration must be positive!");
+        return;
+    }
+    if (n == -1) {
+        for (int i = 0; i < NUM_FINGERS; i++) {
+            _fingers[i].setAcceleration(accel);
+        }
+        OUT("Acceleration for all fingers set to %d%%/s^2", (int)round(accel));
+    } else {
+        if (n < 0 || n >= NUM_FINGERS) { OUT("Dito non valido: %d (range 0-%d)", n, NUM_FINGERS - 1); return; }
+        _fingers[n].setAcceleration(accel);
+        OUT("Finger %d acceleration set to %d%%/s^2", n, (int)round(accel));
     }
 }
 

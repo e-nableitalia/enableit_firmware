@@ -9,7 +9,7 @@
 
 #define BUFFER_MAX      256
 #define MAX_ARGS        10
-#define MAX_COMMANDS    30
+#define MAX_COMMANDS    50
 
 #define PROMPT          "Command: "
 #define PROMPT_CMDERROR "Unknown command <%s>"

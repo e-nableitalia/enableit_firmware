@@ -26,6 +26,13 @@ public:
     void setMaxOpen(int maxOpen);
     void setMaxClosed(int maxClosed);
     void setRange(int maxOpen, int maxClosed);
+    
+    void setSpeed(float maxSpeed);
+    float getSpeed() const { return _maxSpeed; }
+    void setAcceleration(float maxAccel);
+    float getAcceleration() const { return _maxAccel; }
+
+    void poll(); // Aggiorna cinematiche
 
     int  getRelativePosition() const;   // ritorna 0-100
     int  getRawPosition() const;        // ritorna la posizione raw del servo
@@ -38,7 +45,14 @@ private:
     enableit::PwmServoMotor* _servo    = nullptr;
     int  _maxOpen   = 0;
     int  _maxClosed = 180;
-    int  _pct       = 0;
+    
+    float _currentPct = 0.0f;
+    int   _targetPct  = 0;
+    float _currentSpeed = 0.0f; // in %/s
+    float _maxSpeed   = 120.0f; // in %/s
+    float _maxAccel   = 300.0f; // in %/s^2
+    unsigned long _lastUpdateTime = 0;
+    int   _lastRawPos = -1;
 
     int _toRaw(int pct) const;
 };
