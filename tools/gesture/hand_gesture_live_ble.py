@@ -12,8 +12,8 @@ Optional BLE mode sends textual commands to the firmware:
     sethand <thumb> <index> <middle> <ring> <pinky>
 
 Finger values are integers in [0, 100]:
-    0   = fully open
-    100 = fully closed
+    0   = fully closed
+    100 = fully open (extended)
 """
 
 from __future__ import annotations
@@ -468,7 +468,8 @@ class HandGestureLive:
                 avg_angle = (pip_angle + dip_angle) / 2.0
 
             flex = max(0.0, min(100.0, (180.0 - avg_angle) / 90.0 * 100.0))
-            result[name] = round(flex, 1)
+            # Invert: 0% is fully closed, 100% is fully open (extended)
+            result[name] = round(100.0 - flex, 1)
         return result
 
     @staticmethod
@@ -484,7 +485,9 @@ class HandGestureLive:
             if d_base_tip <= 1e-6:
                 return 0.0
             ratio = (d_base_mid + d_mid_tip) / d_base_tip - 1.0
-            return max(0.0, min(100.0, ratio * 50.0))
+            flex = max(0.0, min(100.0, ratio * 50.0))
+            # Invert: 0% is fully closed, 100% is fully open (extended)
+            return 100.0 - flex
 
         return {
             "Thumb": round(finger_flexion(2, 3, 4), 1),
@@ -756,7 +759,7 @@ def main() -> None:
     parser.add_argument("--device-address", default="", help="BLE device address. If set, overrides device-name")
     parser.add_argument("--char-uuid", default=DEFAULT_COMMAND_CHAR_UUID, help="BLE characteristic UUID for sethand commands")
 
-    parser.add_argument("--send-rate", type=int, default=10, help="Maximum BLE messages per second (0=unlimited)")
+    parser.add_argument("--send-rate", type=float, default=10.0, help="Maximum BLE messages per second (0=unlimited; float allowed)")
     parser.add_argument("--deadband", type=int, default=3, help="Minimum finger change needed to send update")
     parser.add_argument("--smooth-alpha", type=float, default=0.35, help="Smoothing factor in [0,1]; 1=raw")
     parser.add_argument("--handedness", default="any", choices=["any", "left", "right"], help="Which hand to control")

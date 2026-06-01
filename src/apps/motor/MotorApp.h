@@ -8,8 +8,21 @@
 #include <STMotor.h>
 #include <PwmServoMotor.h>
 #include "Finger.h"
+#include <BleCommandDispatcher.h>
+#include <RuntimeManager.h>
 
 #define NUM_FINGERS 5
+
+class MotorApp;
+
+class MotorAppBleDispatcher : public enableit::BleV1CommandDispatcher {
+public:
+    MotorAppBleDispatcher(MotorApp* app);
+    const char* name() const override { return "motor_ble"; }
+    void handle(const String& cmd, String& response) override;
+private:
+    MotorApp* _app;
+};
 
 #define MOTOR_APP "motor"
 #define NUM_FINGERS 5
@@ -88,6 +101,7 @@ private:
     void cmdSetFingerRange(); // <--- imposta range raw del servo per un dito
     void cmdInvertFinger();   // <--- scambia maxOpen/maxClosed (toggle direzione)
     void cmdSetHand();        // <--- set hand position for 5 fingers
+    bool handleBleSetHandDirect(const char* cmdBuf);
     void cmdSetFingerSpeed(); // <--- imposta velocità max dito (%/s)
     void cmdSetFingerAccel(); // <--- imposta accelerazione max dito (%/s^2)
 
@@ -119,6 +133,19 @@ private:
 
     // Finger abstraction: one Finger per PWM servo (slots 0-4 = G7,G6,G5,G1,G2)
     motor::Finger _fingers[NUM_FINGERS];
+
+public:
+    void parseBleCommand(const char* cmdBuf);
+    bool enqueueBleCommand(const char* cmdBuf);
+
+private:
+    static constexpr size_t BLE_CMD_MAX_LEN = 256;
+    static constexpr int BLE_CMD_QUEUE_LEN = 8;
+
+    QueueHandle_t _bleCmdQueue = nullptr;
+
+    MotorAppBleDispatcher* _bleDispatcher = nullptr;
+    bool lastBleConnected = false;    
 };
 
 #endif

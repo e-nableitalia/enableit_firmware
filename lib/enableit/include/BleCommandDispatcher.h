@@ -5,6 +5,8 @@
 #include "ProtocolProcessor.h"
 #include "BtServer.h"
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 #include <BLECharacteristic.h>
 

@@ -7,6 +7,7 @@
 
 BOARDAPP_INSTANCE(MotorApp);
 
+
 #define CLAMP(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
 
 #define CMD_FORWARD "* forward, move motor forward"
@@ -43,6 +44,121 @@ BOARDAPP_INSTANCE(MotorApp);
 #define CMD_SET_HAND "* sethand <thumb> <index> <middle> <ring> <pinky>, imposta posizione relativa delle 5 dita (0=aperto, 100=chiuso)"
 #define CMD_SET_FINGER_SPEED "* setfingerspeed <n> <speed>, imposta velocità massima dito n in %/s (0-4, o -1 per tutti)"
 #define CMD_SET_FINGER_ACCEL "* setfingeraccel <n> <accel>, imposta accelerazione massima dito n in %/s^2 (0-4, o -1 per tutti)"
+
+// ── BLE dispatcher implementation ──────────────────────────────────────────
+MotorAppBleDispatcher::MotorAppBleDispatcher(MotorApp* app)
+    : enableit::BleV1CommandDispatcher("39dea685-a63e-44b2-8819-9a202581f8fe", BLECharacteristic::PROPERTY_WRITE),
+      _app(app) {}
+
+void MotorAppBleDispatcher::handle(const String& cmd, String& response) {
+    log_i("MotorApp BLE command: %s", cmd.c_str());
+
+    String cleanCmd = cmd;
+    cleanCmd.trim();
+
+    bool queued = false;
+    if (_app) {
+        queued = _app->enqueueBleCommand(cleanCmd.c_str());
+    }
+
+    // Il client Python non aspetta una risposta applicativa.
+    // Lasciando response vuota evitiamo notify inutili sulla characteristic write-only.
+    response.clear();
+
+    if (!queued) {
+        log_w("MotorApp BLE command dropped: queue full or not initialized");
+    }
+}
+
+bool MotorApp::enqueueBleCommand(const char* cmdBuf) {
+    if (!_bleCmdQueue || !cmdBuf) {
+        return false;
+    }
+
+    char queuedCmd[BLE_CMD_MAX_LEN];
+    // Copia sicura lasciando spazio per '\n' e '\0'
+    size_t n = strnlen(cmdBuf, BLE_CMD_MAX_LEN - 2);
+    memcpy(queuedCmd, cmdBuf, n);
+
+    // Rimuovi eventuali CR/LF finali già presenti
+    while (n > 0 && (queuedCmd[n - 1] == '\r' || queuedCmd[n - 1] == '\n')) {
+        n--;
+    }
+
+    // Aggiungi newline perché CommandParser lavora come console line-oriented
+    //queuedCmd[n++] = '\n';
+    queuedCmd[n] = '\0';
+
+    // Timeout 0: non bloccare mai la callback BLE.
+    BaseType_t ok = xQueueSend(_bleCmdQueue, queuedCmd, 0);
+
+    return ok == pdTRUE;
+}
+
+bool MotorApp::handleBleSetHandDirect(const char* cmdBuf) {
+    if (!cmdBuf) {
+        return false;
+    }
+
+    int thumb = 0;
+    int index = 0;
+    int middle = 0;
+    int ring = 0;
+    int pinky = 0;
+
+    // Accetta: "sethand 10 20 30 40 50"
+    int matched = sscanf(
+        cmdBuf,
+        "sethand %d %d %d %d %d",
+        &thumb,
+        &index,
+        &middle,
+        &ring,
+        &pinky
+    );
+
+    if (matched != 5) {
+        return false;
+    }
+
+    thumb  = CLAMP(thumb,  0, 100);
+    index  = CLAMP(index,  0, 100);
+    middle = CLAMP(middle, 0, 100);
+    ring   = CLAMP(ring,   0, 100);
+    pinky  = CLAMP(pinky,  0, 100);
+
+    _fingers[0].setRelativePosition(thumb);
+    _fingers[1].setRelativePosition(index);
+    _fingers[2].setRelativePosition(middle);
+    _fingers[3].setRelativePosition(ring);
+    _fingers[4].setRelativePosition(pinky);
+
+    static uint32_t logCounter = 0;
+    if ((logCounter++ % 20) == 0) {
+        log_i("BLE sethand applied: %d %d %d %d %d",
+              thumb, index, middle, ring, pinky);
+    }
+
+    return true;
+}
+
+void MotorApp::parseBleCommand(const char* cmdBuf) {
+    if (!cmdBuf) {
+        return;
+    }
+
+    // I comandi live BLE ad alta frequenza non devono passare dal CommandParser.
+    if (handleBleSetHandDirect(cmdBuf)) {
+        return;
+    }
+
+    // Fallback: gli altri comandi BLE, se mai arrivano, usano ancora il parser console.
+    char mutableBuf[BLE_CMD_MAX_LEN];
+    strncpy(mutableBuf, cmdBuf, sizeof(mutableBuf));
+    mutableBuf[sizeof(mutableBuf) - 1] = '\0';
+
+    parser.parseLine(mutableBuf);
+}
 
 void MotorApp::enter() {
     log_d("enter MotorApp");
@@ -81,6 +197,16 @@ void MotorApp::enter() {
     parser.add("invertfinger",   CMD_INVERT_FINGER,    &MotorApp::cmdInvertFinger);
     parser.add("setfingerspeed", CMD_SET_FINGER_SPEED, &MotorApp::cmdSetFingerSpeed);
     parser.add("setfingeraccel", CMD_SET_FINGER_ACCEL, &MotorApp::cmdSetFingerAccel);
+    
+    if (!_bleCmdQueue) {
+        _bleCmdQueue = xQueueCreate(BLE_CMD_QUEUE_LEN, BLE_CMD_MAX_LEN);
+        if (!_bleCmdQueue) {
+            log_e("Failed to create BLE command queue");
+        } else {
+            log_i("BLE command queue created: len=%d, itemSize=%d",
+                BLE_CMD_QUEUE_LEN, BLE_CMD_MAX_LEN);
+        }
+    }   
     // Initialize H-bridge motors (only if present on this board)
     #if NUM_MOTORS > 0
     log_d("Initializing motors");
@@ -141,26 +267,63 @@ void MotorApp::enter() {
     for (int i = 0; i < _motorCount; i++)
         log_d("  [%d] %s", i, _motors[i]->getType());
 
+    // Inizializzazione BLE
+    log_i("Initializing BLE service and dispatcher");
+    enableit::runtime.enableBle("KinetiX", "89d60870-9908-4472-8f8c-e5b3e6573cd1");
+    _bleDispatcher = new MotorAppBleDispatcher(this);
+    enableit::runtime.registerBleCommandDispatcher(_bleDispatcher);
+    enableit::runtime.startBle();
+    lastBleConnected = enableit::runtime.bleConnected();
+
     // Display init
     enableit::board.getDisplay().clear();
     enableit::board.getDisplay().setTextSize(2);
     enableit::board.getDisplay().setTitle("MotorTestApp");
     enableit::board.getDisplay().setTextSize(1);
     enableit::board.getDisplay().setLine(1, "IP: " + WiFi.localIP().toString());
+    enableit::board.getDisplay().setLine(2, "BLE: " + String(lastBleConnected ? "Connected" : "Disconnected"));
 }
 
 void MotorApp::leave() {
     log_d("leave MotorApp");
-    // ...cleanup if needed...
+    if (_bleDispatcher) {
+        delete _bleDispatcher;
+        _bleDispatcher = nullptr;
+    }
+    if (_bleCmdQueue) {
+        vQueueDelete(_bleCmdQueue);
+        _bleCmdQueue = nullptr;
+    }
 }
 
 void MotorApp::process() {
+    char queuedCmd[BLE_CMD_MAX_LEN];
+
+    int processed = 0;
+    constexpr int MAX_BLE_CMDS_PER_LOOP = 4;
+
+    while (_bleCmdQueue &&
+           processed < MAX_BLE_CMDS_PER_LOOP &&
+           xQueueReceive(_bleCmdQueue, queuedCmd, 0) == pdTRUE) {
+
+        log_d("Processing queued BLE command: %s", queuedCmd);
+        parseBleCommand(queuedCmd);
+        processed++;
+    }
+
     parser.poll();
     for (int i = 0; i < NUM_FINGERS; i++) {
         _fingers[i].poll();
     }
     for (int i = 0; i < _motorCount; i++)
         _motors[i]->poll();
+
+    // Aggiornamento dello stato BLE sul display
+    bool currentBleConnected = enableit::runtime.bleConnected();
+    if (currentBleConnected != lastBleConnected) {
+        enableit::board.getDisplay().setLine(2, "BLE: " + String(currentBleConnected ? "Connected" : "Disconnected"));
+        lastBleConnected = currentBleConnected;
+    }
 }
 
 void MotorApp::cmdForward() {
@@ -568,7 +731,7 @@ void MotorApp::cmdTestSync() {
 
 void MotorApp::cmdSetHand() {
     // Verify we have exactly 5 arguments
-    if (parser.getArgs() < 6) {
+    if (parser.getArgs() < 5) {
         OUT("Usage: sethand <thumb> <index> <middle> <ring> <pinky>");
         OUT("  Range: 0=open, 100=closed");
         OUT("  Values are clamped to [0, 100]");
@@ -590,8 +753,8 @@ void MotorApp::cmdSetHand() {
     _fingers[4].setRelativePosition(pinky);
 
     // Print applied values
-    OUT("Hand position set: thumb=%d, index=%d, middle=%d, ring=%d, pinky=%d",
-        thumb, index, middle, ring, pinky);
+    // OUT("Hand position set: thumb=%d, index=%d, middle=%d, ring=%d, pinky=%d",
+    //     thumb, index, middle, ring, pinky);
 }
 
 void MotorApp::cmdOta() {
